@@ -7,8 +7,12 @@ I realized I'd gained weight and wasn't as fit as I used to be. I wanted to get 
 ## What it is
 
 Personal fitness reference: 873 exercises, 33 evidence-ranked supplements, macro calculator + food table, and a built-in coach chat (ask "optimal upper body workout").
+Personal fitness reference: 873 exercises, 33 evidence-ranked supplements, macro calculator + food table, and a built-in coach chat (ask "optimal upper body workout").
 
-## Run it
+## Live demo
+**https://health-stack-seven.vercel.app/**
+
+## Run it locally
 1. Unzip.
 2. Double-click `index.html`. That's it (works offline; exercise photos need internet).
 
