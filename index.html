@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HealthStack — workouts, supplements, nutrition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="brand">Health<span>Stack</span></div>
+    <p class="tagline">873 exercises &middot; 33 supplements ranked by evidence &middot; macro targets and food data. Personal reference, offline-friendly.</p>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" id="tab-workouts" aria-selected="true" aria-controls="panel-workouts">Workouts</button>
+      <button class="tab" role="tab" id="tab-supplements" aria-selected="false" aria-controls="panel-supplements">Supplements</button>
+      <button class="tab" role="tab" id="tab-nutrition" aria-selected="false" aria-controls="panel-nutrition">Nutrition</button>
+      <button class="tab" role="tab" id="tab-saved" aria-selected="false" aria-controls="panel-saved">Saved</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Workouts -->
+  <section class="panel" id="panel-workouts" role="tabpanel" aria-labelledby="tab-workouts">
+    <div id="exercise-browse">
+      <div class="toolbar">
+        <input type="search" id="ex-q" placeholder="Search 873 exercises&hellip;" aria-label="Search exercises">
+        <select id="ex-muscle" aria-label="Filter by muscle"><option value="">All muscles</option></select>
+        <select id="ex-equipment" aria-label="Filter by equipment"><option value="">All equipment</option></select>
+        <select id="ex-level" aria-label="Filter by level">
+          <option value="">All levels</option>
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+          <option value="expert">Expert</option>
+        </select>
+        <select id="ex-category" aria-label="Filter by category"><option value="">All categories</option></select>
+        <span class="count" id="ex-count"></span>
+      </div>
+      <div class="grid" id="ex-grid"></div>
+      <p class="note">Exercise database: <a href="https://github.com/yuhonas/free-exercise-db" target="_blank" rel="noopener">free-exercise-db</a> (open source). Each exercise links to MuscleWiki for video demonstrations.</p>
+    </div>
+    <div id="exercise-detail" hidden></div>
+  </section>
+
+  <!-- Supplements -->
+  <section class="panel" id="panel-supplements" role="tabpanel" aria-labelledby="tab-supplements" hidden>
+    <div class="tier-legend">
+      <span><span class="plate A">A</span> Strong evidence</span>
+      <span><span class="plate B">B</span> Moderate evidence</span>
+      <span><span class="plate C">C</span> Limited / situational</span>
+      <span><span class="plate D">D</span> Doesn't hold up</span>
+    </div>
+    <div class="toolbar">
+      <input type="search" id="supp-q" placeholder="Search supplements&hellip;" aria-label="Search supplements">
+      <select id="supp-goal" aria-label="Filter by goal"><option value="">All goals</option></select>
+      <select id="supp-tier" aria-label="Filter by tier">
+        <option value="">All tiers</option>
+        <option value="A">Tier A</option>
+        <option value="B">Tier B</option>
+        <option value="C">Tier C</option>
+        <option value="D">Tier D</option>
+      </select>
+      <span class="count" id="supp-count"></span>
+    </div>
+    <div class="grid" id="supp-grid" style="grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));"></div>
+    <p class="note">Tiers are a curated summary of research consensus (Examine.com analyses, ISSN position stands, meta-analyses). Each card links to its full Examine page. This is general education, not medical advice; check interactions with any medication you take.</p>
+  </section>
+
+  <!-- Nutrition -->
+  <section class="panel" id="panel-nutrition" role="tabpanel" aria-labelledby="tab-nutrition" hidden>
+    <div class="nutrition-layout">
+      <div class="calc">
+        <h3>Daily targets</h3>
+        <label for="c-sex">Sex</label>
+        <select id="c-sex"><option value="">Select&hellip;</option><option value="male">Male</option><option value="female">Female</option></select>
+        <div class="row2">
+          <div><label for="c-age">Age</label><input id="c-age" type="number" inputmode="numeric" placeholder="25"></div>
+          <div>
+            <label for="c-units">Units</label>
+            <select id="c-units"><option value="us">US (lb, ft/in)</option><option value="metric">Metric (kg, cm)</option></select>
+          </div>
+        </div>
+        <div class="row2" id="us-height">
+          <div><label for="c-ft">Height (ft)</label><input id="c-ft" type="number" inputmode="numeric" placeholder="5"></div>
+          <div><label for="c-in">Height (in)</label><input id="c-in" type="number" inputmode="numeric" placeholder="10"></div>
+        </div>
+        <div id="metric-height" hidden>
+          <label for="c-cm">Height (cm)</label><input id="c-cm" type="number" inputmode="numeric" placeholder="178">
+        </div>
+        <label for="c-weight" id="c-weight-label">Weight (lb)</label>
+        <input id="c-weight" type="number" inputmode="numeric" placeholder="170">
+        <label for="c-activity">Activity level</label>
+        <select id="c-activity">
+          <option value="">Select&hellip;</option>
+          <option value="1.2">Sedentary (desk, little exercise)</option>
+          <option value="1.375">Light (1&ndash;3 workouts/week)</option>
+          <option value="1.55">Moderate (3&ndash;5 workouts/week)</option>
+          <option value="1.725">Active (6&ndash;7 workouts/week)</option>
+          <option value="1.9">Very active (physical job + training)</option>
+        </select>
+        <label for="c-goal">Goal</label>
+        <select id="c-goal">
+          <option value="maintain">Maintain</option>
+          <option value="cut">Lose fat (&minus;20%)</option>
+          <option value="gain">Build muscle (+10%)</option>
+        </select>
+        <button class="go" id="c-go">Calculate targets</button>
+        <p class="calc-error" id="c-error" hidden></p>
+        <div class="results" id="c-results" hidden></div>
+      </div>
+      <div class="foods-box">
+        <h3>Food reference (per 100 g)</h3>
+        <div class="toolbar">
+          <input type="search" id="food-q" placeholder="Search foods&hellip;" aria-label="Search foods">
+          <select id="food-group" aria-label="Filter by group">
+            <option value="">All groups</option>
+            <option value="protein">Protein sources</option>
+            <option value="carb">Carb sources</option>
+            <option value="fruit">Fruit</option>
+            <option value="fat">Fats &amp; nuts</option>
+            <option value="veg">Vegetables</option>
+            <option value="dairy">Dairy &amp; drinks</option>
+          </select>
+          <span class="count" id="food-count"></span>
+        </div>
+        <table class="food-table" aria-label="Food macros per 100 grams">
+          <thead><tr><th>Food</th><th>kcal</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th></tr></thead>
+          <tbody id="food-body"></tbody>
+        </table>
+        <p class="note">Approximate USDA FoodData Central averages per 100 g. Cooked values where noted.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Saved -->
+  <section class="panel" id="panel-saved" role="tabpanel" aria-labelledby="tab-saved" hidden>
+    <div id="saved-content"></div>
+  </section>
+
+</main>
+
+<footer class="disclaimer">
+  HealthStack is a personal education tool. Nothing here is medical advice; talk to a physician before starting supplements, especially alongside prescription medication or health conditions.
+</footer>
+
+<div class="coach" id="coach">
+  <button class="coach-fab" id="coach-fab" aria-expanded="false" aria-controls="coach-panel">Coach</button>
+  <div class="coach-panel" id="coach-panel" hidden>
+    <div class="coach-head">
+      <strong>Coach</strong>
+      <span class="coach-mode">answers from this app's data</span>
+      <button class="coach-close" id="coach-close" aria-label="Close chat">&times;</button>
+    </div>
+    <div class="coach-log" id="coach-log" aria-live="polite"></div>
+    <form class="coach-inputrow" id="coach-form">
+      <input id="coach-input" type="text" placeholder="e.g. optimal upper body workout" aria-label="Ask the coach">
+      <button class="coach-send" type="submit">Ask</button>
+    </form>
+  </div>
+</div>
+
+<script src="data/exercises.js"></script>
+<script src="data/supplements.js"></script>
+<script src="data/foods.js"></script>
+<script src="js/logic.js"></script>
+<script src="js/coach.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
