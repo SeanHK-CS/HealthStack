@@ -13,11 +13,12 @@
 <header class="masthead">
   <div class="masthead-inner">
     <div class="brand">Health<span>Stack</span></div>
-    <p class="tagline">873 exercises &middot; 33 supplements ranked by evidence &middot; macro targets and food data. Personal reference, offline-friendly.</p>
+    <p class="tagline">873 exercises &middot; 33 supplements ranked by evidence &middot; macro targets and food data &middot; shareable coach plans. Personal reference, offline-friendly.</p>
     <nav class="tabs" role="tablist" aria-label="Sections">
       <button class="tab" role="tab" id="tab-workouts" aria-selected="true" aria-controls="panel-workouts">Workouts</button>
       <button class="tab" role="tab" id="tab-supplements" aria-selected="false" aria-controls="panel-supplements">Supplements</button>
       <button class="tab" role="tab" id="tab-nutrition" aria-selected="false" aria-controls="panel-nutrition">Nutrition</button>
+      <button class="tab" role="tab" id="tab-plans" aria-selected="false" aria-controls="panel-plans">Plans</button>
       <button class="tab" role="tab" id="tab-saved" aria-selected="false" aria-controls="panel-saved">Saved</button>
     </nav>
   </div>
@@ -137,6 +138,12 @@
     </div>
   </section>
 
+  <!-- Plans: coach plan builder + shared plan view -->
+  <section class="panel" id="panel-plans" role="tabpanel" aria-labelledby="tab-plans" hidden>
+    <div id="shared-plan" hidden></div>
+    <div id="plan-builder"></div>
+  </section>
+
   <!-- Saved -->
   <section class="panel" id="panel-saved" role="tabpanel" aria-labelledby="tab-saved" hidden>
     <div id="saved-content"></div>
@@ -168,7 +175,9 @@
 <script src="data/supplements.js"></script>
 <script src="data/foods.js"></script>
 <script src="js/logic.js"></script>
+<script src="js/share.js"></script>
 <script src="js/coach.js"></script>
 <script src="js/app.js"></script>
+<script src="js/motion.js"></script>
 </body>
 </html>

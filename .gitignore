@@ -1,0 +1,4 @@
+# Test tooling only (README: `npm install jsdom`); the site itself has no build step.
+node_modules/
+package.json
+package-lock.json

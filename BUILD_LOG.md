@@ -51,3 +51,19 @@ Test evidence: unit 16/16, coach 24/24, smoke 20/20 (jsdom on real index.html), 
 - Removed: key field + settings gear (index.html), keyStore/askClaude/fetch path (app.js), buildClaudeRequest/parseClaudeResponse (coach.js), settings CSS, test/api.test.js, 2 M8 unit tests.
 - E5 fallback text updated: lists coach capabilities, no API mention.
 - Added removal-verification smoke test: no key field, no settings control, no api.anthropic.com string anywhere in the rendered page; grep across shipped files confirms zero API/key references.
+
+## v1.3 — Motion polish + shareable coach plans (this session)
+Scope additions:
+- M9 Coach plan builder (Plans tab): any exercise card gets "+ Plan"; per-exercise coach notes, plan title, coach name, and a message to the client; reorder/remove items; draft persists in localStorage (cap: 15 exercises, 300-char notes).
+- M10 Shareable links with zero backend: the plan serializes to base64url JSON in the URL fragment (#p=...), so links work on the static Vercel deploy and from file://. Recipients get a read-only plan view with the coach's notes, tap through to full exercise instructions, and can load the plan into their own builder to edit/re-share.
+- M11 Motion layer (js/motion.js + CSS): motion-primitives-style interactions — per-word tagline reveal (TextEffect), brand shimmer (TextShimmer), staggered in-view card entrances (AnimatedGroup/InView), cursor-tracking spotlight on cards (Spotlight), sliding tab indicator, panel/chat entrance animations, refined masthead gradient + grid texture.
+- E7 Tampered/garbage/stale share links render a named error view (never crash); unknown exercise ids are dropped; all shared text is length-capped and HTML-escaped on render.
+- E8 All animation is progressive enhancement: gated on prefers-reduced-motion, and the page is fully usable with js/motion.js absent (also keeps jsdom smoke tests deterministic — no IntersectionObserver there means cards reveal instantly).
+
+Decisions & deviations:
+- motion-primitives.com is a React/Motion component library; adding React (or any bundler) would break M4 (plain static site, boots from disk). Ported the signature primitives to dependency-free vanilla CSS/JS instead of importing the library.
+- Share links carry the plan in the fragment, which browsers don't send to servers — nothing is uploaded anywhere. The builder states plainly that anyone with the link can read the notes.
+- "Load into my plan builder" overwrites the single local draft without a confirm dialog: the draft is scratch space, and jsdom has no confirm() to test one.
+- 15-exercise cap keeps worst-case links ~6 KB, comfortably inside practical URL limits for chat apps and browsers.
+
+Test evidence: unit 16/16, coach 22/22, share 9/9 (new: round-trip incl. unicode, hostile input, caps, hash parsing), smoke 27/27 (new: builder flow, link generation, opening a #p= link, import, tampered-link recovery). Real-browser check (Chromium): motion layer engages, plan built and shared link opened in a fresh page shows the read-only coach view.

@@ -8,6 +8,10 @@ I realized I'd gained weight and wasn't as fit as I used to be. I wanted to get 
 
 Personal fitness reference: 873 exercises, 33 evidence-ranked supplements, macro calculator + food table, and a built-in coach chat (ask "optimal upper body workout").
 
+## Shareable coach plans
+
+Coaches and personal trainers can curate a session in the **Plans** tab: add exercises with the **+ Plan** button, write a personal note under each one (sets/reps, tempo, cues), then copy a shareable link. The entire plan is encoded inside the link itself (`#p=...`), so there's no server and no account — anyone opening the link sees a read-only plan with the coach's notes and can load it into their own builder.
+
 ## Live demo
 **https://health-stack-seven.vercel.app/**
 
@@ -19,6 +23,7 @@ Personal fitness reference: 873 exercises, 33 evidence-ranked supplements, macro
     npm install jsdom
     node test/unit.test.js
     node test/coach.test.js
+    node test/share.test.js
     node test/smoke.test.js
 
 Data: exercises from free-exercise-db (MIT-style open license); supplement tiers curated from Examine.com / ISSN consensus; food macros are approximate USDA values. Not medical advice.
