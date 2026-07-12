@@ -272,26 +272,51 @@
   }
 
   /* ---------- today's session: date-seeded daily pick (retention hook) ---------- */
+  var TODAY_SPLITS = ["full", "upper", "lower", "push", "pull", "core", "arms", "chest", "back", "shoulders", "glutes", "cardio"];
+  var SPLIT_LABELS = {
+    full: "Full-body", upper: "Upper-body", lower: "Lower-body", push: "Push", pull: "Pull",
+    core: "Core", arms: "Arms", chest: "Chest", back: "Back", shoulders: "Shoulders", glutes: "Glutes", cardio: "Cardio"
+  };
   var todayShuffle = 0;
   var todayItems = []; // ids of the currently shown daily pick
+  var todaySplitMem = null; // fallback when localStorage is blocked
+  // The rotation is a suggestion; users on their own split can override it for
+  // the day. The override expires at midnight (seed mismatch) so tomorrow is fresh.
+  function todaySplitChoice(seed) {
+    var v = todaySplitMem;
+    if (!v) {
+      try { v = JSON.parse(localStorage.getItem("healthstack.todaySplit") || "null"); } catch (e) {}
+    }
+    return v && v.seed === seed && TODAY_SPLITS.indexOf(v.split) !== -1 ? v.split : null;
+  }
+  function setTodaySplit(seed, split) {
+    todaySplitMem = { seed: seed, split: split };
+    try { localStorage.setItem("healthstack.todaySplit", JSON.stringify(todaySplitMem)); } catch (e) {}
+  }
   function renderToday() {
     var now = new Date();
-    var split = L.dailySplit(now);
-    var rng = L.mulberry32(L.dateSeed(now) + todayShuffle * 97);
+    var seed = L.dateSeed(now);
+    var suggested = L.dailySplit(now);
+    var split = todaySplitChoice(seed) || suggested;
+    var rng = L.mulberry32(seed + todayShuffle * 97);
     var res = window.Coach.generate(window.EXERCISES, { split: split, goal: "hypertrophy" }, rng);
     if (!res.items.length) { $("today-box").innerHTML = ""; todayItems = []; return; }
     todayItems = res.items.map(function (it) { return it.ex.id; });
-    var label = { full: "Full-body", upper: "Upper-body", lower: "Lower-body", push: "Push", pull: "Pull", core: "Core" }[split] ||
-      (split.charAt(0).toUpperCase() + split.slice(1));
     var weekday = now.toLocaleDateString(undefined, { weekday: "long" });
     $("today-box").innerHTML =
       '<div class="card today-card">' +
         '<div class="today-head">' +
           '<div>' +
-            '<div class="today-kicker">Today’s session · ' + esc(weekday) + '</div>' +
-            '<h3>' + esc(label) + ' day</h3>' +
+            '<div class="today-kicker">Today’s session · ' + esc(weekday) + (split !== suggested ? " · your pick" : "") + '</div>' +
+            '<h3>' + esc(SPLIT_LABELS[split]) + ' day</h3>' +
           '</div>' +
           '<div class="today-tools">' +
+            '<select id="today-split" aria-label="Change today’s focus">' +
+              TODAY_SPLITS.map(function (s) {
+                return '<option value="' + s + '"' + (s === split ? " selected" : "") + '>' +
+                  SPLIT_LABELS[s] + (s === suggested ? " · suggested" : "") + '</option>';
+              }).join("") +
+            '</select>' +
             '<button class="btn" id="today-shuffle">Reshuffle</button>' +
             '<button class="btn" id="today-plan">Add all to plan</button>' +
           '</div>' +
@@ -300,7 +325,7 @@
           return '<li><button class="linklike" data-detail="' + esc(it.ex.id) + '">' + esc(it.ex.name) + '</button>' +
             '<span class="scheme">' + esc(it.scheme) + ' · ' + esc(it.ex.equipment) + '</span></li>';
         }).join("") + '</ol>' +
-        '<p class="today-mini">A fresh pick every day. Tap an exercise for step-by-step form.</p>' +
+        '<p class="today-mini">A fresh pick every day. On a different split? Switch the focus above — tomorrow suggests anew.</p>' +
       '</div>';
   }
 
@@ -450,6 +475,11 @@
   document.addEventListener("input", function (e) {
     var t = e.target;
     if (!t || !t.dataset) return;
+    if (t.id === "today-split") {
+      todayShuffle = 0;
+      setTodaySplit(L.dateSeed(new Date()), t.value);
+      renderToday();
+    }
     if (t.dataset.planField) {
       var p = planStore.read();
       p[t.dataset.planField] = t.value;

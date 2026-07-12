@@ -90,3 +90,8 @@ Decisions & deviations:
 - Thumbnail failure collapses the image (display:none) rather than reserving space, so offline cards look exactly like v1.3.
 
 Test evidence: unit 20/20 (new: seed/PRNG/split mapping + deterministic generation), coach 22/22, share 9/9, smoke 34/34 (new: today card, reshuffle, add-all-to-plan + badges, badge tracking, empty-state actions, protein cross-link, thumbnail fallback). Real-browser: badges render, last-tab restore works after reload, 0px mobile overflow at 390/320.
+
+## v1.4.1 — Today's session respects the user's own split (this session)
+- Feedback (Sean, via PR #2 review): the daily card locked Saturday to core — wrong for anyone following their own program.
+- The weekday rotation is now a *suggestion*, not a rule: the card gets a focus picker (Full-body/Upper/Lower/Push/Pull/Core/Arms/Chest/Back/Shoulders/Glutes/Cardio). The day's suggestion is marked "· suggested"; an override is labelled "· your pick", survives reshuffles and reloads, and expires at midnight (stored as {dateSeed, split} in localStorage with in-memory fallback) so tomorrow suggests fresh.
+- Test evidence: smoke 35/35 (new: picker present, suggestion marked, override relabels card + survives reshuffle); real-browser: override persists across reload same-day, 0px mobile overflow.

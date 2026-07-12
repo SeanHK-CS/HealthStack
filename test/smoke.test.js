@@ -265,6 +265,17 @@ const { JSDOM } = require("jsdom");
     assert($("today-box").querySelectorAll("[data-detail]").length >= 4);
   });
 
+  t("M12: today's focus can be switched for people on their own split", () => {
+    assert($("today-split"), "focus picker present");
+    assert($("today-box").textContent.includes("suggested"), "day's suggestion is marked");
+    input("today-split", "upper");
+    assert($("today-box").querySelector("h3").textContent.includes("Upper-body"));
+    assert($("today-box").textContent.includes("your pick"), "override is labelled");
+    assert($("today-box").querySelectorAll("[data-detail]").length >= 4);
+    $("today-shuffle").click(); // override survives a reshuffle
+    assert($("today-box").querySelector("h3").textContent.includes("Upper-body"));
+  });
+
   t("M12: 'Add all to plan' fills the plan and shows a Plans tab badge", () => {
     $("today-plan").click();
     const badge = doc.getElementById("tab-plans").querySelector(".tab-badge");
