@@ -251,6 +251,68 @@ const { JSDOM } = require("jsdom");
     assert.strictEqual($("plan-builder").hidden, false);
   });
 
+  /* ---- M12: today's session + retention layer ---- */
+  t("M12: today's session card renders a daily workout with tappable exercises", () => {
+    doc.getElementById("tab-workouts").click();
+    assert($("today-box").querySelector(".today-card"));
+    assert($("today-box").textContent.includes("Today’s session"));
+    assert($("today-box").querySelectorAll("[data-detail]").length >= 4);
+    assert($("today-box").textContent.includes("reps"));
+  });
+
+  t("M12: reshuffle regenerates and keeps the card populated", () => {
+    $("today-shuffle").click();
+    assert($("today-box").querySelectorAll("[data-detail]").length >= 4);
+  });
+
+  t("M12: 'Add all to plan' fills the plan and shows a Plans tab badge", () => {
+    $("today-plan").click();
+    const badge = doc.getElementById("tab-plans").querySelector(".tab-badge");
+    assert(badge && Number(badge.textContent) >= 4, "plans badge counts items");
+    doc.getElementById("tab-plans").click();
+    assert($("plan-builder").querySelectorAll(".plan-item").length >= 4);
+    $("plan-clear").click();
+    assert(!doc.getElementById("tab-plans").querySelector(".tab-badge"), "badge clears with the plan");
+  });
+
+  t("M12: saved badge tracks saves and unsaves", () => {
+    doc.getElementById("tab-supplements").click();
+    $("supp-grid").querySelector("[data-save-supp='creatine']").click();
+    let badge = doc.getElementById("tab-saved").querySelector(".tab-badge");
+    assert(badge && badge.textContent === "1");
+    $("supp-grid").querySelector("[data-save-supp='creatine']").click();
+    assert(!doc.getElementById("tab-saved").querySelector(".tab-badge"));
+  });
+
+  t("M12: empty states offer a way forward (goto buttons, clear filters)", () => {
+    doc.getElementById("tab-saved").click();
+    $("saved-content").querySelector("[data-goto-tab='workouts']").click();
+    assert.strictEqual($("panel-workouts").hidden, false, "goto button switches tab");
+    input("ex-q", "zzzznotreal");
+    $("ex-grid").querySelector("[data-clear-filters='ex']").click();
+    assert.strictEqual($("ex-q").value, "");
+    assert($("ex-grid").querySelectorAll(".card").length > 0, "grid restored after clearing");
+  });
+
+  t("M12: calculator results cross-link to protein-rich foods", () => {
+    doc.getElementById("tab-nutrition").click();
+    input("c-sex", "male"); input("c-age", "25");
+    input("c-ft", "5"); input("c-in", "10");
+    input("c-weight", "170"); input("c-activity", "1.55");
+    $("c-go").click();
+    $("see-protein").click();
+    assert.strictEqual($("food-group").value, "protein");
+    assert($("food-body").textContent.includes("Chicken"));
+    input("food-group", "");
+  });
+
+  t("M12: exercise cards show a thumbnail that hides itself on load failure", () => {
+    doc.getElementById("tab-workouts").click();
+    const img = $("ex-grid").querySelector(".card-thumb");
+    assert(img && img.src.includes("raw.githubusercontent.com"));
+    assert(img.getAttribute("onerror"), "has offline fallback");
+  });
+
   t("removal check: no key field, settings control, or api.anthropic.com reference in the page", () => {
     assert(!doc.getElementById("coach-key"));
     assert(!doc.getElementById("coach-settings-btn"));

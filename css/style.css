@@ -449,6 +449,59 @@ footer.disclaimer {
   100% { opacity: 0; transform: translate(-50%, 0); }
 }
 
+/* ---------------- Retention layer: today's session, badges, empty-state actions ---------------- */
+.today-card {
+  margin-bottom: 16px;
+  border-color: #c3cff2;
+  background: linear-gradient(135deg, #f4f7ff, #ffffff 55%);
+}
+.today-head { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.today-head h3 { font-size: 24px; margin: 0; }
+.today-kicker {
+  font-family: var(--display); text-transform: uppercase; letter-spacing: 0.12em;
+  font-size: 12.5px; color: var(--accent);
+}
+.today-tools { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.today-list {
+  margin: 10px 0 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: 8px 18px;
+  counter-reset: today;
+}
+.today-list li { counter-increment: today; padding-left: 24px; position: relative; }
+.today-list li::before {
+  content: counter(today);
+  position: absolute; left: 0; top: 2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-soft); color: var(--accent);
+  font-family: var(--display); font-weight: 700; font-size: 12px;
+}
+.today-list .scheme { display: block; color: var(--muted); font-size: 12px; }
+.today-mini { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
+.linklike {
+  background: none; border: none; padding: 0;
+  color: var(--accent); text-decoration: underline; font-size: inherit; text-align: left;
+}
+
+.tab-badge {
+  display: inline-block; margin-left: 7px; padding: 0 7px;
+  border-radius: 10px; background: #8fa4ee; color: var(--ink);
+  font-family: var(--body); font-size: 11.5px; font-weight: 600;
+  letter-spacing: 0; vertical-align: 2px; line-height: 1.6;
+}
+.tab[aria-selected="true"] .tab-badge { background: var(--accent); color: #fff; }
+
+.empty-actions { margin-top: 12px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+.card-row { display: flex; gap: 12px; align-items: flex-start; }
+.card-main { min-width: 0; }
+.card-thumb {
+  width: 60px; height: 60px; flex: 0 0 60px;
+  object-fit: cover; object-position: top;
+  border-radius: 8px; border: 1px solid var(--line); background: var(--bg);
+}
+#see-protein { margin-top: 12px; }
+
 /* Touch devices: comfortable tap targets, and 16px form text so iOS Safari
    doesn't auto-zoom when an input gets focus. Kept last so it wins the
    cascade over component base rules above. */

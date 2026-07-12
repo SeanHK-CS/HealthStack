@@ -72,6 +72,24 @@
     return { bmr: bmr, tdee: tdee, target: target, proteinLo: proteinLo, proteinHi: proteinHi, proteinMid: proteinMid, fatG: fatG, carbG: carbG };
   };
 
+  // Daily session: a date-seeded pick so "today's workout" is stable all day
+  // and fresh tomorrow. mulberry32 is a tiny deterministic PRNG.
+  Logic.dateSeed = function (d) {
+    return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  };
+  Logic.mulberry32 = function (seed) {
+    return function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+  Logic.dailySplit = function (d) {
+    // Sun..Sat — a sane week: recovery-ish bookends, classic split midweek
+    return ["full", "upper", "lower", "push", "pull", "full", "core"][d.getDay()];
+  };
+
   Logic.lbToKg = function (lb) { return lb * 0.45359237; };
   Logic.ftInToCm = function (ft, inch) { return ft * 30.48 + (inch || 0) * 2.54; };
 

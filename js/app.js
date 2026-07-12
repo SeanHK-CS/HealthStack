@@ -43,6 +43,7 @@
     });
     if (name === "saved") renderSaved();
     if (name === "plans") renderPlans();
+    try { localStorage.setItem("healthstack.tab", name); } catch (e) {}
   }
   tabs.forEach(function (t) {
     $("tab-" + t).addEventListener("click", function () { showTab(t); });
@@ -76,8 +77,12 @@
   function exerciseCard(x) {
     var saved = store.has("ex", x.id);
     return '<div class="card">' +
+      '<div class="card-row">' +
+      '<img class="card-thumb" loading="lazy" alt="" src="' + esc(L.exerciseImageUrl(x.images[0])) + '" onerror="this.style.display=\'none\'">' +
+      '<div class="card-main">' +
       '<h3>' + esc(x.name) + '</h3>' +
       '<div class="meta">' + esc(x.level) + ' &middot; ' + esc(x.equipment) + ' &middot; ' + esc(x.category) + '</div>' +
+      '</div></div>' +
       '<div class="chips">' +
         x.primary.map(function (p) { return '<span class="chip primary">' + esc(p) + '</span>'; }).join("") +
         x.secondary.slice(0, 3).map(function (p) { return '<span class="chip">' + esc(p) + '</span>'; }).join("") +
@@ -97,7 +102,8 @@
     $("ex-count").textContent = list.length + " exercise" + (list.length === 1 ? "" : "s") +
       (list.length > EX_RENDER_CAP ? " (showing first " + EX_RENDER_CAP + " \u2014 narrow with filters)" : "");
     if (!list.length) {
-      $("ex-grid").innerHTML = '<div class="empty">No exercises match. Clear a filter or try a shorter search term.</div>';
+      $("ex-grid").innerHTML = '<div class="empty">No exercises match. Clear a filter or try a shorter search term.' +
+        '<div class="empty-actions"><button class="btn" data-clear-filters="ex">Clear all filters</button></div></div>';
       return;
     }
     $("ex-grid").innerHTML = list.slice(0, EX_RENDER_CAP).map(exerciseCard).join("");
@@ -163,7 +169,8 @@
     var list = L.filterSupps(window.SUPPLEMENTS, { q: $("supp-q").value, goal: $("supp-goal").value, tier: $("supp-tier").value });
     $("supp-count").textContent = list.length + " supplement" + (list.length === 1 ? "" : "s");
     $("supp-grid").innerHTML = list.length ? list.map(suppCard).join("")
-      : '<div class="empty">Nothing matches. Clear a filter or try another term.</div>';
+      : '<div class="empty">Nothing matches. Clear a filter or try another term.' +
+        '<div class="empty-actions"><button class="btn" data-clear-filters="supp">Clear all filters</button></div></div>';
   }
   ["supp-q", "supp-goal", "supp-tier"].forEach(function (id) { $(id).addEventListener("input", renderSupps); });
 
@@ -196,7 +203,8 @@
       '<tr><td>Fat (~25%)</td><td>' + r.fatG + ' g</td></tr>' +
       '<tr><td>Carbs (remainder)</td><td>' + r.carbG + ' g</td></tr>' +
       '</tbody></table>' +
-      '<p class="note">Mifflin-St Jeor estimate. Treat it as a starting point; adjust by \u00b1200 kcal based on 2\u20133 weeks of scale trend.</p>';
+      '<p class="note">Mifflin-St Jeor estimate. Treat it as a starting point; adjust by \u00b1200 kcal based on 2\u20133 weeks of scale trend.</p>' +
+      '<button class="btn" id="see-protein">See protein-rich foods &rarr;</button>';
   });
 
   function renderFoods() {
@@ -214,7 +222,11 @@
     var ex = window.EXERCISES.filter(function (x) { return v.ex.indexOf(x.id) !== -1; });
     var sp = window.SUPPLEMENTS.filter(function (s) { return v.supp.indexOf(s.id) !== -1; });
     if (!ex.length && !sp.length) {
-      $("saved-content").innerHTML = '<div class="empty">Nothing saved yet. Save exercises from the Workouts tab and supplements from the Supplements tab, and they collect here.</div>';
+      $("saved-content").innerHTML = '<div class="empty">Nothing saved yet. Save exercises from the Workouts tab and supplements from the Supplements tab, and they collect here.' +
+        '<div class="empty-actions">' +
+          '<button class="btn" data-goto-tab="workouts">Browse exercises</button>' +
+          '<button class="btn" data-goto-tab="supplements">Browse supplements</button>' +
+        '</div></div>';
       return;
     }
     var html = "";
@@ -257,6 +269,54 @@
   function exById(id) {
     for (var i = 0; i < window.EXERCISES.length; i++) if (window.EXERCISES[i].id === id) return window.EXERCISES[i];
     return null;
+  }
+
+  /* ---------- today's session: date-seeded daily pick (retention hook) ---------- */
+  var todayShuffle = 0;
+  var todayItems = []; // ids of the currently shown daily pick
+  function renderToday() {
+    var now = new Date();
+    var split = L.dailySplit(now);
+    var rng = L.mulberry32(L.dateSeed(now) + todayShuffle * 97);
+    var res = window.Coach.generate(window.EXERCISES, { split: split, goal: "hypertrophy" }, rng);
+    if (!res.items.length) { $("today-box").innerHTML = ""; todayItems = []; return; }
+    todayItems = res.items.map(function (it) { return it.ex.id; });
+    var label = { full: "Full-body", upper: "Upper-body", lower: "Lower-body", push: "Push", pull: "Pull", core: "Core" }[split] ||
+      (split.charAt(0).toUpperCase() + split.slice(1));
+    var weekday = now.toLocaleDateString(undefined, { weekday: "long" });
+    $("today-box").innerHTML =
+      '<div class="card today-card">' +
+        '<div class="today-head">' +
+          '<div>' +
+            '<div class="today-kicker">Today’s session · ' + esc(weekday) + '</div>' +
+            '<h3>' + esc(label) + ' day</h3>' +
+          '</div>' +
+          '<div class="today-tools">' +
+            '<button class="btn" id="today-shuffle">Reshuffle</button>' +
+            '<button class="btn" id="today-plan">Add all to plan</button>' +
+          '</div>' +
+        '</div>' +
+        '<ol class="today-list">' + res.items.map(function (it) {
+          return '<li><button class="linklike" data-detail="' + esc(it.ex.id) + '">' + esc(it.ex.name) + '</button>' +
+            '<span class="scheme">' + esc(it.scheme) + ' · ' + esc(it.ex.equipment) + '</span></li>';
+        }).join("") + '</ol>' +
+        '<p class="today-mini">A fresh pick every day. Tap an exercise for step-by-step form.</p>' +
+      '</div>';
+  }
+
+  /* ---------- tab badges: show how much you've collected ---------- */
+  function setBadge(id, n) {
+    var el = $(id);
+    var b = el.querySelector(".tab-badge");
+    if (!n) { if (b) el.removeChild(b); return; }
+    if (!b) { b = document.createElement("span"); b.className = "tab-badge"; el.appendChild(b); }
+    b.textContent = String(n);
+  }
+  function updateBadges() {
+    var v = store.read();
+    setBadge("tab-saved", v.ex.length + v.supp.length);
+    setBadge("tab-plans", planStore.read().items.length);
+    try { window.dispatchEvent(new Event("resize")); } catch (e) {} // let the tab indicator re-measure
   }
 
   function toast(text) {
@@ -304,7 +364,8 @@
       '</div>' +
       (p.items.length
         ? '<ol class="plan-list">' + p.items.map(function (it, i) { return planItemRow(it, i, p.items.length); }).join("") + '</ol>'
-        : '<div class="empty">No exercises in this plan yet. Head to the Workouts tab and tap <b>+ Plan</b> on the exercises you want.</div>') +
+        : '<div class="empty">No exercises in this plan yet. Head to the Workouts tab and tap <b>+ Plan</b> on the exercises you want.' +
+          '<div class="empty-actions"><button class="btn" data-goto-tab="workouts">Browse exercises</button></div></div>') +
       '</div>';
   }
 
@@ -457,6 +518,32 @@
       }
     }
     if (t.id === "shared-dismiss") dismissShared();
+    if (t.id === "today-shuffle") { todayShuffle++; renderToday(); }
+    if (t.id === "today-plan") {
+      var addedCount = 0;
+      todayItems.forEach(function (id) {
+        if (!planHas(id) && planToggle(id) === "added") addedCount++;
+      });
+      toast(addedCount ? "Added " + addedCount + " exercises to your plan (Plans tab)." : "These are already in your plan.");
+      renderExercises();
+      if (!$("panel-plans").hidden) renderPlans();
+    }
+    if (t.id === "see-protein") {
+      $("food-group").value = "protein";
+      $("food-q").value = "";
+      renderFoods();
+      var fb = document.querySelector(".foods-box");
+      if (fb && fb.scrollIntoView) { try { fb.scrollIntoView({ behavior: "smooth" }); } catch (e) {} }
+    }
+    if (t.dataset && t.dataset.gotoTab) showTab(t.dataset.gotoTab);
+    if (t.dataset && t.dataset.clearFilters === "ex") {
+      ["ex-q", "ex-muscle", "ex-equipment", "ex-level", "ex-category"].forEach(function (id) { $(id).value = ""; });
+      renderExercises();
+    }
+    if (t.dataset && t.dataset.clearFilters === "supp") {
+      ["supp-q", "supp-goal", "supp-tier"].forEach(function (id) { $(id).value = ""; });
+      renderSupps();
+    }
     if (t.dataset && t.dataset.saveEx) {
       store.toggle("ex", t.dataset.saveEx);
       renderExercises();
@@ -467,6 +554,7 @@
       renderSupps();
       if (!$("panel-saved").hidden) renderSaved();
     }
+    updateBadges(); // counts may have changed on any of the branches above
   });
 
   /* ---------- coach chat (fully local, no network, no keys) ---------- */
@@ -535,5 +623,12 @@
   renderExercises();
   renderSupps();
   renderFoods();
+  renderToday();
+  updateBadges();
+  // land returning visitors on the tab they last used (share links win below)
+  try {
+    var lastTab = localStorage.getItem("healthstack.tab");
+    if (lastTab && tabs.indexOf(lastTab) !== -1) showTab(lastTab);
+  } catch (e) {}
   checkSharedHash(); // opened from a shared #p=... link? jump straight to the plan
 })();
