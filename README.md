@@ -15,15 +15,4 @@ Coaches and personal trainers can curate a session in the **Plans** tab: add exe
 ## Live demo
 **https://health-stack-seven.vercel.app/**
 
-## Run it locally
-1. Unzip.
-2. Double-click `index.html`. That's it (works offline; exercise photos need internet).
-
-## Tests (optional, needs Node)
-    npm install jsdom
-    node test/unit.test.js
-    node test/coach.test.js
-    node test/share.test.js
-    node test/smoke.test.js
-
 Data: exercises from free-exercise-db (MIT-style open license); supplement tiers curated from Examine.com / ISSN consensus; food macros are approximate USDA values. Not medical advice.
