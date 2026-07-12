@@ -496,7 +496,6 @@ footer.disclaimer {
   font-family: var(--display); text-transform: uppercase; letter-spacing: 0.04em;
   font-size: 21px; margin: 0;
 }
-.ex-row-head .count-mini { color: var(--muted); font-size: 13px; }
 .ex-row-nav { margin-left: auto; display: flex; gap: 6px; align-items: center; }
 .ex-row-scroll {
   display: flex; gap: 12px;

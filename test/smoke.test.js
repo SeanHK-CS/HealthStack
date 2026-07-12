@@ -40,7 +40,8 @@ const { JSDOM } = require("jsdom");
       assert(row.querySelectorAll("[data-row-nav]").length === 2, "row has scroll arrows");
     }
     assert(rows[0].textContent.includes("Pushups"), "chest row leads with curated picks");
-    assert($("ex-count").textContent.includes("873"));
+    assert(!$("ex-count").textContent.match(/\d/), "no counts while browsing (overwhelm feedback)");
+    assert(!$("ex-grid").textContent.match(/\d+ exercises/), "no per-row counts either");
   });
 
   t("M1: 'See all' opens the group view with flagged top picks, then the full list", () => {
@@ -49,7 +50,10 @@ const { JSDOM } = require("jsdom");
     assert($("ex-grid").querySelectorAll(".chip.pick").length === 5, "five suggested picks");
     assert($("ex-grid").textContent.includes("Pushups") && $("ex-grid").textContent.includes("Dumbbell Bench Press"), "canonical curated picks lead");
     assert($("ex-grid").querySelectorAll(".card").length > 6, "full list follows the picks");
-    assert($("ex-count").textContent.includes("Chest"));
+    assert.strictEqual($("ex-count").textContent, "", "bare group view stays number-free");
+    input("ex-equipment", "dumbbell");
+    assert($("ex-count").textContent.match(/\d+ matches · Chest/), "counts return as filter feedback");
+    input("ex-equipment", "");
     $("ex-grid").querySelector("[data-groups-back]").click();
     assert($("ex-grid").querySelectorAll(".ex-row").length >= 8, "back returns to the rows");
   });

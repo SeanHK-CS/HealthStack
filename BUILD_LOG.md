@@ -111,3 +111,9 @@ Test evidence: unit 26/26, coach 22/22, share 9/9, smoke 36/36. Real-browser: ti
 - Deliberately NOT an auto-rotating carousel (known anti-pattern: content gets missed, controls fight the user) — rows only move when the user moves them.
 - Shared groupPicks() feeds both the rows (8) and the group view (5).
 - Test evidence: unit 26/26, coach 22/22, share 9/9, smoke 36/36 (row structure, arrows, See-all round-trip). Real-browser: 9 rows render, arrow scrolls 2→854px, See-all/back round-trip works, arrows hidden at 390px, 0px overflow at 390/320.
+
+## v1.5.2 — Numbers only as feedback, never as advertising (this session)
+- Feedback (Sean): the count next to each row and the "800+ exercises" framing still read as overwhelming.
+- Rule adopted: counts appear only when they answer a question the user asked. Removed: per-row "84 exercises", the "873 exercises · browse..." label, "Search 873 exercises" placeholder, and the tagline's number ("A full exercise library · ..."). Kept: result counts after searching/filtering ("12 matches · Chest", "showing first 60"), where the number is feedback, not pressure.
+- Bare group views show no count; filtering within a group brings the count back.
+- Test evidence: smoke 36/36 (asserts browse surfaces are number-free and that counts return as filter feedback); unit/coach/share unchanged (26/22/9).

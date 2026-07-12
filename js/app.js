@@ -77,9 +77,6 @@
      The default view is ~9 tiles; a tapped group leads with 5 top picks
      (curated lists live in logic.js next to the fallback ranking). */
   var MUSCLE_GROUPS = L.MUSCLE_GROUPS;
-  MUSCLE_GROUPS.forEach(function (g) {
-    g.count = L.filterExercises(window.EXERCISES, { muscles: g.muscles, category: g.category }).length;
-  });
   var browseGroup = null; // key of the group being browsed, or null
 
   var EX_RENDER_CAP = 60;
@@ -125,14 +122,13 @@
   // picks first \u2014 every group visible at a glance, no wall of 873 cards.
   function renderBrowseRows() {
     $("ex-grid").classList.add("rows-mode");
-    $("ex-count").textContent = window.EXERCISES.length + " exercises \u00b7 browse by muscle group, or search above";
+    $("ex-count").textContent = "Browse by muscle group, or search above";
     $("ex-grid").innerHTML = MUSCLE_GROUPS.map(function (g) {
       var list = L.filterExercises(window.EXERCISES, { muscles: g.muscles, category: g.category });
       var picks = groupPicks(g, list, 8);
       return '<section class="ex-row">' +
         '<div class="ex-row-head">' +
           '<h2>' + esc(g.name) + '</h2>' +
-          '<span class="count-mini">' + g.count + ' exercises</span>' +
           '<div class="ex-row-nav">' +
             '<button class="btn icon" data-row-nav="-1" aria-label="Scroll ' + esc(g.name) + ' back">&lsaquo;</button>' +
             '<button class="btn icon" data-row-nav="1" aria-label="Scroll ' + esc(g.name) + ' forward">&rsaquo;</button>' +
@@ -148,7 +144,9 @@
       q: f.q, equipment: f.equipment, level: f.level,
       muscles: g.muscles, category: g.category || f.category
     });
-    $("ex-count").textContent = list.length + " exercise" + (list.length === 1 ? "" : "s") + " \u00b7 " + g.name;
+    // counts only as filter feedback \u2014 a bare group view stays number-free
+    var narrowed = f.q || f.equipment || f.level || f.category;
+    $("ex-count").textContent = narrowed ? list.length + " match" + (list.length === 1 ? "" : "es") + " \u00b7 " + g.name : "";
     if (!list.length) {
       $("ex-grid").innerHTML = '<div class="empty">Nothing in ' + esc(g.name) + ' matches those filters.' +
         '<div class="empty-actions">' +
