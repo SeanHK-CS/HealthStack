@@ -116,4 +116,29 @@ t("E3: food search no-match returns empty", () => {
   assert.deepStrictEqual(L.searchFoods(FOODS, "unobtainium", ""), []);
 });
 
+console.log("M12: today's session (date-seeded daily pick)");
+t("dateSeed is stable per calendar day, distinct across days", () => {
+  assert.strictEqual(L.dateSeed(new Date(2026, 6, 12)), 20260712);
+  assert.notStrictEqual(L.dateSeed(new Date(2026, 6, 12)), L.dateSeed(new Date(2026, 6, 13)));
+});
+t("mulberry32: same seed -> same sequence in [0,1); different seed differs", () => {
+  const a = L.mulberry32(20260712), b = L.mulberry32(20260712), c = L.mulberry32(20260713);
+  const seqA = [a(), a(), a()], seqB = [b(), b(), b()], seqC = [c(), c(), c()];
+  assert.deepStrictEqual(seqA, seqB);
+  assert.notDeepStrictEqual(seqA, seqC);
+  for (const v of seqA) assert(v >= 0 && v < 1);
+});
+t("dailySplit maps the week to real splits (Sun full ... Sat core)", () => {
+  const splits = [];
+  for (let d = 12; d <= 18; d++) splits.push(L.dailySplit(new Date(2026, 6, d))); // Jul 12 2026 is a Sunday
+  assert.deepStrictEqual(splits, ["full", "upper", "lower", "push", "pull", "full", "core"]);
+});
+t("seeded generation is deterministic (same seed -> identical workout)", () => {
+  const Coach = require("../js/coach.js");
+  const one = Coach.generate(EX, { split: "upper", goal: "hypertrophy" }, L.mulberry32(20260712));
+  const two = Coach.generate(EX, { split: "upper", goal: "hypertrophy" }, L.mulberry32(20260712));
+  assert.deepStrictEqual(one.items.map(i => i.ex.id), two.items.map(i => i.ex.id));
+  assert(one.items.length >= 4);
+});
+
 console.log("\n" + pass + " tests passed");

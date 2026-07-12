@@ -52,7 +52,7 @@
       if (io) io.observe(k); else k.classList.add("mp-in");
     }
   }
-  ["ex-grid", "supp-grid", "saved-content", "plan-builder", "shared-plan"].forEach(function (id) {
+  ["today-box", "ex-grid", "supp-grid", "saved-content", "plan-builder", "shared-plan"].forEach(function (id) {
     var el = doc.getElementById(id);
     if (!el) return;
     reveal(el);

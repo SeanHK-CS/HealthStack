@@ -75,3 +75,18 @@ Test evidence: unit 16/16, coach 22/22, share 9/9 (new: round-trip incl. unicode
 - Food table now sits in an overflow-x:auto wrapper so worst-case width scrolls inside its card instead of widening the page.
 - Touch ergonomics (@media pointer:coarse, kept last in the cascade): bigger tap targets for .btn/.btn.icon/coach close, 16px form text so iOS Safari doesn't auto-zoom on input focus.
 - Test evidence: unit 16/16, coach 22/22, share 9/9, smoke 27/27 unchanged; mobile audit script reports 0px overflow on all views at both widths.
+
+## v1.4 — Retention pass (this session)
+UX goal: give people a reason to come back and never leave them at a dead end, without adding scope (still no accounts, no logging, no backend).
+- M12 Today's session: a date-seeded daily workout at the top of Workouts (same pick all day, fresh tomorrow; Sun full / Mon upper / Tue lower / Wed push / Thu pull / Fri full / Sat core). Reshuffle button re-rolls deterministically; "Add all to plan" feeds the coach-plan builder. Uses the existing Coach.generate engine with a mulberry32 PRNG seeded from the calendar date (Logic.dateSeed/mulberry32/dailySplit — pure, unit-tested).
+- Tab badges: Plans and Saved tabs show live item counts, so collected work is visible from every screen.
+- Actionable empty states: no-result searches get "Clear all filters"; empty Saved/Plans get buttons that jump to the right tab.
+- Exercise card thumbnails: 60px lazy-loaded photo per card (first image from the exercise's own set); hides itself on load failure so the offline layout is unchanged (E2 pattern).
+- Cross-links: calculator results add "See protein-rich foods →" (filters + scrolls to the food table); the app reopens on the tab you last used (localStorage; share links still take priority).
+- Copy: tagline tightened.
+
+Decisions & deviations:
+- No streaks/logging — considered and rejected as scope creep toward a tracking app; the daily-session card is the comeback trigger instead.
+- Thumbnail failure collapses the image (display:none) rather than reserving space, so offline cards look exactly like v1.3.
+
+Test evidence: unit 20/20 (new: seed/PRNG/split mapping + deterministic generation), coach 22/22, share 9/9, smoke 34/34 (new: today card, reshuffle, add-all-to-plan + badges, badge tracking, empty-state actions, protein cross-link, thumbnail fallback). Real-browser: badges render, last-tab restore works after reload, 0px mobile overflow at 390/320.
