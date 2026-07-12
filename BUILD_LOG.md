@@ -104,3 +104,10 @@ Test evidence: unit 20/20 (new: seed/PRNG/split mapping + deterministic generati
 - Unit tests validate every curated id exists and belongs to its group, and that the 9 groups cover all 17 primary muscles in the DB — curation can't rot silently when the dataset updates.
 
 Test evidence: unit 26/26, coach 22/22, share 9/9, smoke 36/36. Real-browser: tiles → chest → 5 canonical picks + 60-cap full list, search-within-group works, back returns to tiles, 0px mobile overflow.
+
+## v1.5.1 — Browse rows (carousel) instead of tiles (this session)
+- Feedback (Sean): make the muscle-group browsing feel like a carousel.
+- The Workouts front door is now one horizontally scrollable, scroll-snap row per muscle group (Netflix pattern) — 8 cards each, curated picks first — so real exercises are visible immediately instead of abstract category tiles. "See all →" opens the existing group view (5 flagged picks + full list); ‹ › arrows scroll a row on desktop and hide on touch widths where fingers do it.
+- Deliberately NOT an auto-rotating carousel (known anti-pattern: content gets missed, controls fight the user) — rows only move when the user moves them.
+- Shared groupPicks() feeds both the rows (8) and the group view (5).
+- Test evidence: unit 26/26, coach 22/22, share 9/9, smoke 36/36 (row structure, arrows, See-all round-trip). Real-browser: 9 rows render, arrow scrolls 2→854px, See-all/back round-trip works, arrows hidden at 390px, 0px overflow at 390/320.

@@ -103,18 +103,46 @@
         '<button class="btn' + (planHas(x.id) ? " saved" : "") + '" data-plan-ex="' + esc(x.id) + '">' + (planHas(x.id) ? "In plan \u2713" : "+ Plan") + '</button>' +
       '</div></div>';
   }
-  function renderMuscleTiles() {
-    $("ex-count").textContent = window.EXERCISES.length + " exercises \u00b7 pick a muscle group to get started";
-    $("ex-grid").innerHTML = MUSCLE_GROUPS.map(function (g) {
-      return '<button class="card muscle-tile" data-group="' + g.key + '">' +
-        '<h3>' + esc(g.name) + '</h3>' +
-        '<div class="meta">' + g.count + ' exercises</div>' +
-        '<span class="tile-cta">Top picks + full list &rarr;</span>' +
-      '</button>';
-    }).join("");
+  var CORE_CATS = ["strength", "powerlifting", "olympic weightlifting"];
+  // curated canonical picks first; the ranking algorithm fills any gaps
+  // (e.g. when an equipment filter excludes some of the curated ones)
+  function groupPicks(g, list, n) {
+    var listIds = {};
+    list.forEach(function (x) { listIds[x.id] = 1; });
+    var picks = (g.picks || []).filter(function (id) { return listIds[id]; }).map(exById);
+    if (picks.length < n) {
+      var chosen = {};
+      picks.forEach(function (x) { chosen[x.id] = 1; });
+      var pool = (g.category ? list : list.filter(function (x) { return CORE_CATS.indexOf(x.category) !== -1; }))
+        .filter(function (x) { return !chosen[x.id]; });
+      if (pool.length < 3) pool = list.filter(function (x) { return !chosen[x.id]; });
+      picks = picks.concat(L.rankSuggestions(pool, n - picks.length));
+    }
+    return picks.slice(0, n);
   }
 
-  var CORE_CATS = ["strength", "powerlifting", "olympic weightlifting"];
+  // Browse home: one horizontally scrollable row per muscle group, curated
+  // picks first \u2014 every group visible at a glance, no wall of 873 cards.
+  function renderBrowseRows() {
+    $("ex-grid").classList.add("rows-mode");
+    $("ex-count").textContent = window.EXERCISES.length + " exercises \u00b7 browse by muscle group, or search above";
+    $("ex-grid").innerHTML = MUSCLE_GROUPS.map(function (g) {
+      var list = L.filterExercises(window.EXERCISES, { muscles: g.muscles, category: g.category });
+      var picks = groupPicks(g, list, 8);
+      return '<section class="ex-row">' +
+        '<div class="ex-row-head">' +
+          '<h2>' + esc(g.name) + '</h2>' +
+          '<span class="count-mini">' + g.count + ' exercises</span>' +
+          '<div class="ex-row-nav">' +
+            '<button class="btn icon" data-row-nav="-1" aria-label="Scroll ' + esc(g.name) + ' back">&lsaquo;</button>' +
+            '<button class="btn icon" data-row-nav="1" aria-label="Scroll ' + esc(g.name) + ' forward">&rsaquo;</button>' +
+            '<button class="btn" data-group="' + g.key + '">See all &rarr;</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="ex-row-scroll">' + picks.map(function (x) { return exerciseCard(x); }).join("") + '</div>' +
+      '</section>';
+    }).join("");
+  }
   function renderGroupView(g, f) {
     var list = L.filterExercises(window.EXERCISES, {
       q: f.q, equipment: f.equipment, level: f.level,
@@ -129,19 +157,7 @@
         '</div></div>';
       return;
     }
-    // curated canonical picks first; the ranking algorithm fills any gaps
-    // (e.g. when an equipment filter excludes some of the curated five)
-    var listIds = {};
-    list.forEach(function (x) { listIds[x.id] = 1; });
-    var picks = (g.picks || []).filter(function (id) { return listIds[id]; }).map(exById);
-    if (picks.length < 5) {
-      var chosen = {};
-      picks.forEach(function (x) { chosen[x.id] = 1; });
-      var pool = (g.category ? list : list.filter(function (x) { return CORE_CATS.indexOf(x.category) !== -1; }))
-        .filter(function (x) { return !chosen[x.id]; });
-      if (pool.length < 3) pool = list.filter(function (x) { return !chosen[x.id]; });
-      picks = picks.concat(L.rankSuggestions(pool, 5 - picks.length));
-    }
+    var picks = groupPicks(g, list, 5);
     var used = {};
     picks.forEach(function (x) { used[x.id] = 1; });
     var rest = list.filter(function (x) { return !used[x.id]; });
@@ -164,12 +180,13 @@
       level: $("ex-level").value, category: $("ex-category").value
     };
     if (f.muscle) browseGroup = null; // an explicit muscle filter replaces group browsing
+    $("ex-grid").classList.remove("rows-mode");
     var g = null;
     if (browseGroup) {
       for (var i = 0; i < MUSCLE_GROUPS.length; i++) if (MUSCLE_GROUPS[i].key === browseGroup) g = MUSCLE_GROUPS[i];
     }
     if (g) { renderGroupView(g, f); return; }
-    if (!f.q && !f.muscle && !f.equipment && !f.level && !f.category) { renderMuscleTiles(); return; }
+    if (!f.q && !f.muscle && !f.equipment && !f.level && !f.category) { renderBrowseRows(); return; }
     var list = L.filterExercises(window.EXERCISES, f);
     $("ex-count").textContent = list.length + " exercise" + (list.length === 1 ? "" : "s") +
       (list.length > EX_RENDER_CAP ? " (showing first " + EX_RENDER_CAP + " \u2014 narrow with filters)" : "");
@@ -570,6 +587,13 @@
     var tile = t.closest ? t.closest("[data-group]") : null;
     if (tile) { browseGroup = tile.dataset.group; renderExercises(); }
     if (t.closest && t.closest("[data-groups-back]")) { browseGroup = null; renderExercises(); }
+    var nav = t.closest ? t.closest("[data-row-nav]") : null;
+    if (nav) {
+      var scroller = nav.closest(".ex-row").querySelector(".ex-row-scroll");
+      var dx = Number(nav.dataset.rowNav) * Math.max(200, scroller.clientWidth - 100);
+      if (scroller.scrollBy) scroller.scrollBy({ left: dx, behavior: "smooth" });
+      else scroller.scrollLeft += dx;
+    }
     if (t.dataset && t.dataset.detail) { showTab("workouts"); showDetail(t.dataset.detail); }
     if (t.dataset && t.dataset.planEx) {
       var res = planToggle(t.dataset.planEx);

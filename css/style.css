@@ -487,11 +487,29 @@ footer.disclaimer {
   color: var(--accent); text-decoration: underline; font-size: inherit; text-align: left;
 }
 
-/* Muscle-group tiles: the calm front door to 873 exercises */
-.muscle-tile { text-align: left; display: block; padding: 18px 16px; }
-.muscle-tile h3 { font-size: 23px; margin: 0; }
-.muscle-tile .meta { margin-top: 2px; }
-.muscle-tile .tile-cta { display: block; margin-top: 12px; color: var(--accent); font-size: 13px; font-weight: 600; }
+/* Muscle-group rows: the calm front door to 873 exercises — one horizontally
+   scrollable row per group (scroll-snap), curated picks first */
+#ex-grid.rows-mode { display: block; }
+.ex-row { margin-bottom: 26px; }
+.ex-row-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.ex-row-head h2 {
+  font-family: var(--display); text-transform: uppercase; letter-spacing: 0.04em;
+  font-size: 21px; margin: 0;
+}
+.ex-row-head .count-mini { color: var(--muted); font-size: 13px; }
+.ex-row-nav { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.ex-row-scroll {
+  display: flex; gap: 12px;
+  overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding: 2px 2px 10px;
+}
+.ex-row-scroll .card { flex: 0 0 min(272px, 80vw); scroll-snap-align: start; }
+@media (max-width: 560px) {
+  .ex-row-nav [data-row-nav] { display: none; } /* fingers scroll; arrows are for mice */
+}
 .grid-span { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
 .grid-span .group-title {
   font-family: var(--display); text-transform: uppercase; letter-spacing: 0.04em;

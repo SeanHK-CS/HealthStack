@@ -31,13 +31,19 @@ const { JSDOM } = require("jsdom");
     assert(window.Logic, "logic loaded");
   });
 
-  t("M1: workouts opens with muscle-group tiles, not a wall of 873 cards", () => {
-    assert($("ex-grid").querySelectorAll(".muscle-tile").length >= 8);
+  t("M1: workouts opens with a scrollable row per muscle group, not a wall of 873 cards", () => {
+    const rows = $("ex-grid").querySelectorAll(".ex-row");
+    assert(rows.length >= 8);
+    for (const row of rows) {
+      assert(row.querySelector(".ex-row-scroll .card"), "row has cards");
+      assert(row.querySelector("[data-group]"), "row has a See-all button");
+      assert(row.querySelectorAll("[data-row-nav]").length === 2, "row has scroll arrows");
+    }
+    assert(rows[0].textContent.includes("Pushups"), "chest row leads with curated picks");
     assert($("ex-count").textContent.includes("873"));
-    assert($("ex-count").textContent.includes("pick a muscle group"));
   });
 
-  t("M1: tapping a group leads with flagged top picks, then the full list", () => {
+  t("M1: 'See all' opens the group view with flagged top picks, then the full list", () => {
     $("ex-grid").querySelector("[data-group='chest']").click();
     assert($("ex-grid").textContent.includes("top picks"));
     assert($("ex-grid").querySelectorAll(".chip.pick").length === 5, "five suggested picks");
@@ -45,7 +51,7 @@ const { JSDOM } = require("jsdom");
     assert($("ex-grid").querySelectorAll(".card").length > 6, "full list follows the picks");
     assert($("ex-count").textContent.includes("Chest"));
     $("ex-grid").querySelector("[data-groups-back]").click();
-    assert($("ex-grid").querySelectorAll(".muscle-tile").length >= 8, "back returns to tiles");
+    assert($("ex-grid").querySelectorAll(".ex-row").length >= 8, "back returns to the rows");
   });
 
   t("M1: filtering to chest + dumbbell updates grid and count", () => {
