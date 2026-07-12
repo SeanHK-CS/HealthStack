@@ -124,3 +124,9 @@ Test evidence: unit 26/26, coach 22/22, share 9/9, smoke 36/36. Real-browser: ti
 - Theme: "quiet luxury" repaint — warm ivory (#F4F1EA) over cool chalk, Playfair Display serif for display type (Barlow Condensed retired), champagne-gold accents (brand mark, tab indicator, kickers, badges, top-pick chips, spotlight glow), deep navy for actions, warm hairlines/shadows, 12px radius. Tier plate colors unchanged (semantic). CSS + font link only; zero markup/behavior changes, all animation still prefers-reduced-motion-gated.
 - Added meta description, og:title/og:description, and theme-color so shared links preview properly (the shareable-plan links are the app's organic growth loop).
 - Test evidence: unit 26/26, coach 22/22, share 9/9, smoke 36/36, browser E2E 48/48, no page errors.
+
+## v1.6.1 — Project skill library (Fable 5 handover, this session)
+- Nine operational skills committed under .claude/skills/ so future Claude Code sessions (any model) inherit this project's judgment automatically: architecture-contract, testing-and-verification, design-system, share-links, data-model, coach-engine, failure-archaeology, debugging-playbook, workflow.
+- Content is strictly operational (how this codebase works, every shipped bug's root cause, the house rules); product strategy stays out of the public repo by design.
+- Owner-confirmed house rules encoded: zero-backend is sacred until a deliberate Tier-3 decision; calm > features (max 1–2 per release); the quiet-luxury look is the brand; every change is browser-verified before push.
+- No runtime code touched; all suites unchanged and passing (unit 26, coach 22, share 9, smoke 36).
