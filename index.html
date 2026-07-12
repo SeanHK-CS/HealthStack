@@ -13,11 +13,12 @@
 <header class="masthead">
   <div class="masthead-inner">
     <div class="brand">Health<span>Stack</span></div>
-    <p class="tagline">873 exercises &middot; 33 supplements ranked by evidence &middot; macro targets and food data. Personal reference, offline-friendly.</p>
+    <p class="tagline">873 exercises &middot; 33 supplements ranked by evidence &middot; macro targets and food data &middot; shareable coach plans. Personal reference, offline-friendly.</p>
     <nav class="tabs" role="tablist" aria-label="Sections">
       <button class="tab" role="tab" id="tab-workouts" aria-selected="true" aria-controls="panel-workouts">Workouts</button>
       <button class="tab" role="tab" id="tab-supplements" aria-selected="false" aria-controls="panel-supplements">Supplements</button>
       <button class="tab" role="tab" id="tab-nutrition" aria-selected="false" aria-controls="panel-nutrition">Nutrition</button>
+      <button class="tab" role="tab" id="tab-plans" aria-selected="false" aria-controls="panel-plans">Plans</button>
       <button class="tab" role="tab" id="tab-saved" aria-selected="false" aria-controls="panel-saved">Saved</button>
     </nav>
   </div>
@@ -67,7 +68,7 @@
       </select>
       <span class="count" id="supp-count"></span>
     </div>
-    <div class="grid" id="supp-grid" style="grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));"></div>
+    <div class="grid grid-wide" id="supp-grid"></div>
     <p class="note">Tiers are a curated summary of research consensus (Examine.com analyses, ISSN position stands, meta-analyses). Each card links to its full Examine page. This is general education, not medical advice; check interactions with any medication you take.</p>
   </section>
 
@@ -128,13 +129,21 @@
           </select>
           <span class="count" id="food-count"></span>
         </div>
-        <table class="food-table" aria-label="Food macros per 100 grams">
-          <thead><tr><th>Food</th><th>kcal</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th></tr></thead>
-          <tbody id="food-body"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="food-table" aria-label="Food macros per 100 grams">
+            <thead><tr><th>Food</th><th>kcal</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th></tr></thead>
+            <tbody id="food-body"></tbody>
+          </table>
+        </div>
         <p class="note">Approximate USDA FoodData Central averages per 100 g. Cooked values where noted.</p>
       </div>
     </div>
+  </section>
+
+  <!-- Plans: coach plan builder + shared plan view -->
+  <section class="panel" id="panel-plans" role="tabpanel" aria-labelledby="tab-plans" hidden>
+    <div id="shared-plan" hidden></div>
+    <div id="plan-builder"></div>
   </section>
 
   <!-- Saved -->
@@ -168,7 +177,9 @@
 <script src="data/supplements.js"></script>
 <script src="data/foods.js"></script>
 <script src="js/logic.js"></script>
+<script src="js/share.js"></script>
 <script src="js/coach.js"></script>
 <script src="js/app.js"></script>
+<script src="js/motion.js"></script>
 </body>
 </html>

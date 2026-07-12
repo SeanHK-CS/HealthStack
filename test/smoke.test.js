@@ -182,6 +182,75 @@ const { JSDOM } = require("jsdom");
     assert(!m.textContent.toLowerCase().includes("api key"), "no API mention remains");
   });
 
+  /* ---- M9/M10: coach plan builder + shareable links ---- */
+  t("M9: '+ Plan' collects an exercise into the Plans tab builder", () => {
+    doc.getElementById("tab-workouts").click();
+    const btn = $("ex-grid").querySelector("[data-plan-ex]");
+    btn.click();
+    doc.getElementById("tab-plans").click();
+    assert.strictEqual($("panel-plans").hidden, false);
+    assert.strictEqual($("plan-builder").querySelectorAll(".plan-item").length, 1);
+    assert($("plan-builder").textContent.includes("Copy shareable link"));
+  });
+
+  t("M9: plan fields and per-exercise notes persist through the store", () => {
+    input("plan-coach", "Coach Sam");
+    input("plan-title", "Week 1 — Upper");
+    const ta = $("plan-builder").querySelector("[data-plan-note]");
+    ta.value = "3×8, slow eccentric";
+    ta.dispatchEvent(new window.Event("input", { bubbles: true }));
+    doc.getElementById("tab-workouts").click();
+    doc.getElementById("tab-plans").click(); // full re-render from storage
+    assert.strictEqual($("plan-coach").value, "Coach Sam");
+    assert($("plan-builder").querySelector("[data-plan-note]").value.includes("eccentric"));
+  });
+
+  let sharedLink;
+  t("M10: share button produces a decodable #p= link", () => {
+    $("plan-share").click();
+    const out = $("plan-link");
+    assert.strictEqual(out.hidden, false);
+    assert(out.value.includes("#p="), out.value);
+    sharedLink = out.value;
+    const code = window.Share.parseHash("#" + out.value.split("#")[1]);
+    const r = window.Share.decodePlan(code, window.EXERCISES);
+    assert(!r.error, r.error);
+    assert.strictEqual(r.plan.coach, "Coach Sam");
+    assert(r.plan.items[0].note.includes("eccentric"));
+  });
+
+  window.location.hash = "#" + sharedLink.split("#")[1];
+  await new Promise((r) => setTimeout(r, 100));
+  t("M10: opening a #p= link shows the read-only shared plan with coach notes", () => {
+    assert.strictEqual($("panel-plans").hidden, false, "jumped to Plans tab");
+    assert.strictEqual($("shared-plan").hidden, false);
+    assert.strictEqual($("plan-builder").hidden, true, "builder hidden behind shared view");
+    assert($("shared-plan").textContent.includes("Coach Sam"));
+    assert($("shared-plan").textContent.includes("eccentric"));
+    assert($("shared-plan").querySelector("[data-detail]"), "links through to exercise detail");
+  });
+
+  t("M10: 'Load into my plan builder' imports the plan and returns to the builder", () => {
+    $("shared-import").click();
+    assert.strictEqual($("shared-plan").hidden, true);
+    assert.strictEqual($("plan-builder").hidden, false);
+    assert($("plan-builder").querySelector("[data-plan-note]").value.includes("eccentric"));
+    $("plan-clear").click(); // leave a clean slate for anything after
+    assert($("plan-builder").textContent.includes("No exercises in this plan yet"));
+  });
+
+  window.location.hash = "#p=%%%not-a-real-plan";
+  await new Promise((r) => setTimeout(r, 100));
+  window.location.hash = "#p=garbagegarbage";
+  await new Promise((r) => setTimeout(r, 100));
+  t("E7: a tampered link shows a named error view, and dismiss recovers", () => {
+    assert.strictEqual($("shared-plan").hidden, false);
+    assert($("shared-plan").textContent.includes("doesn't contain a readable plan"));
+    $("shared-dismiss").click();
+    assert.strictEqual($("shared-plan").hidden, true);
+    assert.strictEqual($("plan-builder").hidden, false);
+  });
+
   t("removal check: no key field, settings control, or api.anthropic.com reference in the page", () => {
     assert(!doc.getElementById("coach-key"));
     assert(!doc.getElementById("coach-settings-btn"));

@@ -35,13 +35,14 @@
   };
 
   /* ---------- tabs ---------- */
-  var tabs = ["workouts", "supplements", "nutrition", "saved"];
+  var tabs = ["workouts", "supplements", "nutrition", "plans", "saved"];
   function showTab(name) {
     tabs.forEach(function (t) {
       $("tab-" + t).setAttribute("aria-selected", String(t === name));
       $("panel-" + t).hidden = t !== name;
     });
     if (name === "saved") renderSaved();
+    if (name === "plans") renderPlans();
   }
   tabs.forEach(function (t) {
     $("tab-" + t).addEventListener("click", function () { showTab(t); });
@@ -84,6 +85,7 @@
       '<div class="card-actions">' +
         '<button class="btn" data-detail="' + esc(x.id) + '">Details</button>' +
         '<button class="btn' + (saved ? " saved" : "") + '" data-save-ex="' + esc(x.id) + '">' + (saved ? "Saved \u2713" : "Save") + '</button>' +
+        '<button class="btn' + (planHas(x.id) ? " saved" : "") + '" data-plan-ex="' + esc(x.id) + '">' + (planHas(x.id) ? "In plan \u2713" : "+ Plan") + '</button>' +
       '</div></div>';
   }
   function renderExercises() {
@@ -120,6 +122,9 @@
       '<div class="detail-images">' + imgs + '</div>' +
       '<ol>' + x.instructions.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + '</ol>' +
       '<p><a href="' + esc(L.muscleWikiUrl(x.name)) + '" target="_blank" rel="noopener">Find this on MuscleWiki (video demos) &rarr;</a></p>' +
+      '<div class="card-actions">' +
+        '<button class="btn' + (planHas(x.id) ? " saved" : "") + '" data-plan-ex="' + esc(x.id) + '">' + (planHas(x.id) ? "In plan ✓" : "+ Plan") + '</button>' +
+      '</div>' +
       '</div>';
     $("exercise-browse").hidden = true;
     $("exercise-detail").hidden = false;
@@ -213,15 +218,245 @@
       return;
     }
     var html = "";
-    if (sp.length) html += '<h3 style="font-family:var(--display);text-transform:uppercase;">My supplement stack</h3><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(330px,1fr));">' + sp.map(suppCard).join("") + "</div>";
+    if (sp.length) html += '<h3 style="font-family:var(--display);text-transform:uppercase;">My supplement stack</h3><div class="grid grid-wide">' + sp.map(suppCard).join("") + "</div>";
     if (ex.length) html += '<h3 style="font-family:var(--display);text-transform:uppercase;margin-top:22px;">Saved exercises</h3><div class="grid">' + ex.map(exerciseCard).join("") + "</div>";
     $("saved-content").innerHTML = html;
   }
 
-  /* ---------- delegated clicks (save / detail buttons) ---------- */
+  /* ---------- coach plans: builder + shareable links (js/share.js) ---------- */
+  var Share = window.Share;
+  var planMemory = null; // same localStorage-with-fallback pattern as `store`
+  var planStore = {
+    read: function () {
+      if (planMemory) return planMemory;
+      try { return JSON.parse(localStorage.getItem("healthstack.plan") || "null") || emptyPlan(); }
+      catch (e) { planMemory = emptyPlan(); return planMemory; }
+    },
+    write: function (v) {
+      if (!planMemory) {
+        try { localStorage.setItem("healthstack.plan", JSON.stringify(v)); return; }
+        catch (e) { /* fall through to memory */ }
+      }
+      planMemory = v;
+    }
+  };
+  function emptyPlan() { return { title: "", coach: "", message: "", items: [] }; }
+  function planHas(id) {
+    return planStore.read().items.some(function (it) { return it.id === id; });
+  }
+  function planToggle(id) {
+    var p = planStore.read();
+    for (var i = 0; i < p.items.length; i++) {
+      if (p.items[i].id === id) { p.items.splice(i, 1); planStore.write(p); return "removed"; }
+    }
+    if (p.items.length >= Share.LIMITS.items) return "full";
+    p.items.push({ id: id, note: "" });
+    planStore.write(p);
+    return "added";
+  }
+  function exById(id) {
+    for (var i = 0; i < window.EXERCISES.length; i++) if (window.EXERCISES[i].id === id) return window.EXERCISES[i];
+    return null;
+  }
+
+  function toast(text) {
+    var d = document.createElement("div");
+    d.className = "toast";
+    d.textContent = text;
+    document.body.appendChild(d);
+    setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 2400);
+  }
+
+  function planItemRow(it, i, total) {
+    var x = exById(it.id);
+    if (!x) return "";
+    return '<li class="card plan-item">' +
+      '<div class="plan-item-head">' +
+        '<span class="plan-n">' + (i + 1) + '</span>' +
+        '<div><h3>' + esc(x.name) + '</h3><div class="meta">' + esc(x.level) + ' &middot; ' + esc(x.equipment) + ' &middot; ' + x.primary.map(esc).join(", ") + '</div></div>' +
+        '<div class="plan-item-tools">' +
+          '<button class="btn icon" data-plan-up="' + i + '"' + (i === 0 ? " disabled" : "") + ' aria-label="Move up">&uarr;</button>' +
+          '<button class="btn icon" data-plan-down="' + i + '"' + (i === total - 1 ? " disabled" : "") + ' aria-label="Move down">&darr;</button>' +
+          '<button class="btn icon" data-plan-remove="' + i + '" aria-label="Remove from plan">&times;</button>' +
+        '</div>' +
+      '</div>' +
+      '<textarea class="plan-note" data-plan-note="' + i + '" maxlength="' + Share.LIMITS.note + '" placeholder="Coach note for this exercise — sets/reps, tempo, cues…">' + esc(it.note || "") + '</textarea>' +
+    '</li>';
+  }
+
+  function renderPlans() {
+    var p = planStore.read();
+    $("plan-builder").innerHTML =
+      '<p class="plan-intro">Curate a session for a client: add exercises with the <b>+ Plan</b> button on any exercise card, write a note under each one, then copy a link. The whole plan travels inside the link — no account, no server.</p>' +
+      '<div class="plan-grid">' +
+      '<div class="card plan-meta">' +
+        '<h3>Plan details</h3>' +
+        '<label for="plan-title">Plan title</label>' +
+        '<input id="plan-title" data-plan-field="title" maxlength="' + Share.LIMITS.title + '" placeholder="Week 1 — upper body focus" value="' + esc(p.title) + '">' +
+        '<label for="plan-coach">Your name (coach / trainer)</label>' +
+        '<input id="plan-coach" data-plan-field="coach" maxlength="' + Share.LIMITS.name + '" placeholder="Coach Sam" value="' + esc(p.coach) + '">' +
+        '<label for="plan-message">Message to your client</label>' +
+        '<textarea id="plan-message" data-plan-field="message" maxlength="' + Share.LIMITS.message + '" placeholder="Focus on form this week; weights stay light.">' + esc(p.message) + '</textarea>' +
+        '<button class="go" id="plan-share">Copy shareable link</button>' +
+        '<input id="plan-link" readonly aria-label="Shareable plan link" hidden>' +
+        (p.items.length ? '<button class="btn" id="plan-clear">Clear plan</button>' : "") +
+        '<p class="note">Anyone with the link can read the plan and your notes. Links keep working offline and on the deployed site.</p>' +
+      '</div>' +
+      (p.items.length
+        ? '<ol class="plan-list">' + p.items.map(function (it, i) { return planItemRow(it, i, p.items.length); }).join("") + '</ol>'
+        : '<div class="empty">No exercises in this plan yet. Head to the Workouts tab and tap <b>+ Plan</b> on the exercises you want.</div>') +
+      '</div>';
+  }
+
+  /* ----- shared plan view (opened from a #p=... link) ----- */
+  var sharedCode = null;
+  function renderSharedPlan(code) {
+    sharedCode = code;
+    var box = $("shared-plan");
+    var r = Share.decodePlan(code, window.EXERCISES);
+    if (r.error) {
+      box.innerHTML = '<div class="empty">' + esc(r.error) + '</div>' +
+        '<div class="shared-actions"><button class="btn" id="shared-dismiss">Back to my plans</button></div>';
+      box.hidden = false;
+      $("plan-builder").hidden = true;
+      return;
+    }
+    var p = r.plan;
+    box.innerHTML =
+      '<div class="shared-head">' +
+        '<div class="shared-kicker">Shared training plan</div>' +
+        '<h2>' + esc(p.title || "Training plan") + '</h2>' +
+        (p.coach ? '<div class="meta">from ' + esc(p.coach) + '</div>' : "") +
+        (p.message ? '<p class="shared-msg">' + esc(p.message) + '</p>' : "") +
+      '</div>' +
+      '<ol class="plan-list">' + p.items.map(function (it, i) {
+        var x = it.exercise;
+        return '<li class="card plan-item">' +
+          '<div class="plan-item-head">' +
+            '<span class="plan-n">' + (i + 1) + '</span>' +
+            '<div><h3>' + esc(x.name) + '</h3><div class="meta">' + esc(x.level) + ' &middot; ' + esc(x.equipment) + ' &middot; ' + x.primary.map(esc).join(", ") + '</div></div>' +
+          '</div>' +
+          (it.note ? '<p class="coach-note"><b>Coach’s note:</b> ' + esc(it.note) + '</p>' : "") +
+          '<div class="card-actions"><button class="btn" data-detail="' + esc(x.id) + '">Form &amp; instructions</button></div>' +
+        '</li>';
+      }).join("") + '</ol>' +
+      '<div class="shared-actions">' +
+        '<button class="btn" id="shared-import">Load into my plan builder</button>' +
+        '<button class="btn" id="shared-dismiss">Dismiss</button>' +
+      '</div>';
+    box.hidden = false;
+    $("plan-builder").hidden = true;
+  }
+  function dismissShared() {
+    sharedCode = null;
+    try { history.replaceState(null, "", location.pathname + location.search); }
+    catch (e) { location.hash = ""; }
+    checkSharedHash();
+  }
+  function checkSharedHash() {
+    var code = Share.parseHash(location.hash);
+    if (code) {
+      showTab("plans");
+      renderSharedPlan(code);
+    } else {
+      sharedCode = null;
+      $("shared-plan").hidden = true;
+      $("shared-plan").innerHTML = "";
+      $("plan-builder").hidden = false;
+    }
+  }
+  window.addEventListener("hashchange", checkSharedHash);
+
+  function sharePlan() {
+    var r = Share.encodePlan(planStore.read());
+    if (r.error) { toast(r.error); return; }
+    var link = Share.planLink(location.href, r.code);
+    var out = $("plan-link");
+    out.hidden = false;
+    out.value = link;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link).then(
+        function () { toast("Link copied — send it to your client."); },
+        function () { try { out.select(); } catch (e) {} toast("Copy the link below."); }
+      );
+    } else {
+      try { out.select(); } catch (e) {}
+      toast("Copy the link below.");
+    }
+  }
+
+  /* persist plan fields/notes as they're typed (no re-render, keeps focus) */
+  document.addEventListener("input", function (e) {
+    var t = e.target;
+    if (!t || !t.dataset) return;
+    if (t.dataset.planField) {
+      var p = planStore.read();
+      p[t.dataset.planField] = t.value;
+      planStore.write(p);
+    }
+    if (t.dataset.planNote !== undefined && t.dataset.planNote !== "") {
+      var p2 = planStore.read();
+      var i = Number(t.dataset.planNote);
+      if (p2.items[i]) { p2.items[i].note = t.value; planStore.write(p2); }
+    }
+  });
+
+  /* ---------- delegated clicks (save / detail / plan buttons) ---------- */
   document.addEventListener("click", function (e) {
     var t = e.target;
     if (t.dataset && t.dataset.detail) { showTab("workouts"); showDetail(t.dataset.detail); }
+    if (t.dataset && t.dataset.planEx) {
+      var res = planToggle(t.dataset.planEx);
+      if (res === "full") toast("Plans cap at " + Share.LIMITS.items + " exercises — remove one first.");
+      else toast(res === "added" ? "Added to your plan (Plans tab)." : "Removed from your plan.");
+      if (res !== "full" && t.closest && t.closest("#exercise-detail")) {
+        var on = res === "added";
+        t.classList.toggle("saved", on);
+        t.innerHTML = on ? "In plan ✓" : "+ Plan";
+      }
+      renderExercises();
+      if (!$("panel-plans").hidden) renderPlans();
+      if (!$("panel-saved").hidden) renderSaved();
+    }
+    if (t.dataset && t.dataset.planRemove !== undefined) {
+      var pr = planStore.read();
+      pr.items.splice(Number(t.dataset.planRemove), 1);
+      planStore.write(pr);
+      renderPlans();
+      renderExercises();
+    }
+    if (t.dataset && (t.dataset.planUp !== undefined || t.dataset.planDown !== undefined)) {
+      var up = t.dataset.planUp !== undefined;
+      var from = Number(up ? t.dataset.planUp : t.dataset.planDown);
+      var to = up ? from - 1 : from + 1;
+      var pm = planStore.read();
+      if (pm.items[from] && pm.items[to]) {
+        var tmp = pm.items[from];
+        pm.items[from] = pm.items[to];
+        pm.items[to] = tmp;
+        planStore.write(pm);
+        renderPlans();
+      }
+    }
+    if (t.id === "plan-share") sharePlan();
+    if (t.id === "plan-clear") {
+      planStore.write(emptyPlan());
+      renderPlans();
+      renderExercises();
+    }
+    if (t.id === "shared-import" && sharedCode) {
+      var sr = Share.decodePlan(sharedCode, window.EXERCISES);
+      if (sr.plan) {
+        planStore.write({
+          title: sr.plan.title, coach: sr.plan.coach, message: sr.plan.message,
+          items: sr.plan.items.map(function (it) { return { id: it.id, note: it.note }; })
+        });
+        toast("Plan loaded into your builder.");
+        dismissShared();
+        renderExercises();
+      }
+    }
+    if (t.id === "shared-dismiss") dismissShared();
     if (t.dataset && t.dataset.saveEx) {
       store.toggle("ex", t.dataset.saveEx);
       renderExercises();
@@ -300,4 +535,5 @@
   renderExercises();
   renderSupps();
   renderFoods();
+  checkSharedHash(); // opened from a shared #p=... link? jump straight to the plan
 })();
