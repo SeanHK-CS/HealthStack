@@ -116,6 +116,55 @@ t("E3: food search no-match returns empty", () => {
   assert.deepStrictEqual(L.searchFoods(FOODS, "unobtainium", ""), []);
 });
 
+console.log("M13: muscle-group browsing + top picks");
+t("curated group picks: every id exists and belongs to its group", () => {
+  const byId = {};
+  EX.forEach(x => byId[x.id] = x);
+  for (const g of L.MUSCLE_GROUPS) {
+    assert.strictEqual(g.picks.length, 5, g.key + " has 5 picks");
+    for (const id of g.picks) {
+      const x = byId[id];
+      assert(x, g.key + ": unknown id " + id);
+      if (g.muscles) assert(g.muscles.some(m => x.primary.includes(m)), g.key + ": " + id + " trains " + x.primary);
+      if (g.category) assert.strictEqual(x.category, g.category, g.key + ": " + id);
+    }
+  }
+});
+t("muscle groups cover every primary muscle in the DB", () => {
+  const covered = new Set();
+  L.MUSCLE_GROUPS.forEach(g => (g.muscles || []).forEach(m => covered.add(m)));
+  const all = new Set();
+  EX.forEach(x => x.primary.forEach(m => all.add(m)));
+  for (const m of all) assert(covered.has(m), "uncovered muscle: " + m);
+});
+t("muscles array filter matches any listed primary muscle", () => {
+  const r = L.filterExercises(EX, { muscles: ["lats", "middle back"] });
+  assert(r.length > 20);
+  assert(r.every(x => x.primary.includes("lats") || x.primary.includes("middle back")));
+});
+t("muscles filter composes with equipment", () => {
+  const r = L.filterExercises(EX, { muscles: ["chest"], equipment: "dumbbell" });
+  assert(r.length > 0 && r.every(x => x.primary.includes("chest") && x.equipment === "dumbbell"));
+});
+t("rankSuggestions: deterministic, compound-first, beginner-leaning", () => {
+  const chest = L.filterExercises(EX, { muscles: ["chest"] }).filter(x => x.category === "strength");
+  const a = L.rankSuggestions(chest, 5);
+  const b = L.rankSuggestions(chest, 5);
+  assert.deepStrictEqual(a.map(x => x.id), b.map(x => x.id), "stable output");
+  assert.strictEqual(a.length, 5);
+  assert(a.every(x => x.mechanic === "compound"), "compounds lead");
+  assert.strictEqual(a[0].level, "beginner", "easiest first");
+  assert(!Object.is(a, chest) && chest.length > 5, "input list not mutated/truncated");
+});
+t("rankSuggestions: shortlist is diverse — one per equipment type, no movement variants", () => {
+  const chest = L.filterExercises(EX, { muscles: ["chest"] }).filter(x => x.category === "strength");
+  const picks = L.rankSuggestions(chest, 5);
+  const equip = picks.map(x => x.equipment);
+  assert.strictEqual(new Set(equip).size, equip.length, "equipment unique: " + equip.join(", "));
+  const fams = picks.map(x => x.name.toLowerCase().replace(/[^a-z\s]/g, "").split(/\s+/).slice(0, 2).join(" "));
+  assert.strictEqual(new Set(fams).size, fams.length, "movement families unique: " + picks.map(x => x.name).join(", "));
+});
+
 console.log("M12: today's session (date-seeded daily pick)");
 t("dateSeed is stable per calendar day, distinct across days", () => {
   assert.strictEqual(L.dateSeed(new Date(2026, 6, 12)), 20260712);

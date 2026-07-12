@@ -487,6 +487,18 @@ footer.disclaimer {
   color: var(--accent); text-decoration: underline; font-size: inherit; text-align: left;
 }
 
+/* Muscle-group tiles: the calm front door to 873 exercises */
+.muscle-tile { text-align: left; display: block; padding: 18px 16px; }
+.muscle-tile h3 { font-size: 23px; margin: 0; }
+.muscle-tile .meta { margin-top: 2px; }
+.muscle-tile .tile-cta { display: block; margin-top: 12px; color: var(--accent); font-size: 13px; font-weight: 600; }
+.grid-span { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.grid-span .group-title {
+  font-family: var(--display); text-transform: uppercase; letter-spacing: 0.04em;
+  font-size: 20px; margin: 0;
+}
+.chip.pick { background: #fff4d6; border-color: #ecd9a0; color: #8a6100; font-weight: 600; }
+
 .tab-badge {
   display: inline-block; margin-left: 7px; padding: 0 7px;
   border-radius: 10px; background: #8fa4ee; color: var(--ink);

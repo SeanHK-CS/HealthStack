@@ -73,8 +73,17 @@
   fillSelect($("ex-equipment"), EQUIP);
   fillSelect($("ex-category"), CATS);
 
+  /* Muscle-group browsing: the antidote to "873 exercises" overwhelm.
+     The default view is ~9 tiles; a tapped group leads with 5 top picks
+     (curated lists live in logic.js next to the fallback ranking). */
+  var MUSCLE_GROUPS = L.MUSCLE_GROUPS;
+  MUSCLE_GROUPS.forEach(function (g) {
+    g.count = L.filterExercises(window.EXERCISES, { muscles: g.muscles, category: g.category }).length;
+  });
+  var browseGroup = null; // key of the group being browsed, or null
+
   var EX_RENDER_CAP = 60;
-  function exerciseCard(x) {
+  function exerciseCard(x, topPick) {
     var saved = store.has("ex", x.id);
     return '<div class="card">' +
       '<div class="card-row">' +
@@ -84,6 +93,7 @@
       '<div class="meta">' + esc(x.level) + ' &middot; ' + esc(x.equipment) + ' &middot; ' + esc(x.category) + '</div>' +
       '</div></div>' +
       '<div class="chips">' +
+        (topPick ? '<span class="chip pick">Top pick</span>' : "") +
         x.primary.map(function (p) { return '<span class="chip primary">' + esc(p) + '</span>'; }).join("") +
         x.secondary.slice(0, 3).map(function (p) { return '<span class="chip">' + esc(p) + '</span>'; }).join("") +
       '</div>' +
@@ -93,11 +103,73 @@
         '<button class="btn' + (planHas(x.id) ? " saved" : "") + '" data-plan-ex="' + esc(x.id) + '">' + (planHas(x.id) ? "In plan \u2713" : "+ Plan") + '</button>' +
       '</div></div>';
   }
+  function renderMuscleTiles() {
+    $("ex-count").textContent = window.EXERCISES.length + " exercises \u00b7 pick a muscle group to get started";
+    $("ex-grid").innerHTML = MUSCLE_GROUPS.map(function (g) {
+      return '<button class="card muscle-tile" data-group="' + g.key + '">' +
+        '<h3>' + esc(g.name) + '</h3>' +
+        '<div class="meta">' + g.count + ' exercises</div>' +
+        '<span class="tile-cta">Top picks + full list &rarr;</span>' +
+      '</button>';
+    }).join("");
+  }
+
+  var CORE_CATS = ["strength", "powerlifting", "olympic weightlifting"];
+  function renderGroupView(g, f) {
+    var list = L.filterExercises(window.EXERCISES, {
+      q: f.q, equipment: f.equipment, level: f.level,
+      muscles: g.muscles, category: g.category || f.category
+    });
+    $("ex-count").textContent = list.length + " exercise" + (list.length === 1 ? "" : "s") + " \u00b7 " + g.name;
+    if (!list.length) {
+      $("ex-grid").innerHTML = '<div class="empty">Nothing in ' + esc(g.name) + ' matches those filters.' +
+        '<div class="empty-actions">' +
+          '<button class="btn" data-clear-filters="ex">Clear all filters</button>' +
+          '<button class="btn" data-groups-back>All muscle groups</button>' +
+        '</div></div>';
+      return;
+    }
+    // curated canonical picks first; the ranking algorithm fills any gaps
+    // (e.g. when an equipment filter excludes some of the curated five)
+    var listIds = {};
+    list.forEach(function (x) { listIds[x.id] = 1; });
+    var picks = (g.picks || []).filter(function (id) { return listIds[id]; }).map(exById);
+    if (picks.length < 5) {
+      var chosen = {};
+      picks.forEach(function (x) { chosen[x.id] = 1; });
+      var pool = (g.category ? list : list.filter(function (x) { return CORE_CATS.indexOf(x.category) !== -1; }))
+        .filter(function (x) { return !chosen[x.id]; });
+      if (pool.length < 3) pool = list.filter(function (x) { return !chosen[x.id]; });
+      picks = picks.concat(L.rankSuggestions(pool, 5 - picks.length));
+    }
+    var used = {};
+    picks.forEach(function (x) { used[x.id] = 1; });
+    var rest = list.filter(function (x) { return !used[x.id]; });
+    $("ex-grid").innerHTML =
+      '<div class="grid-span">' +
+        '<button class="btn" data-groups-back>&larr; All muscle groups</button>' +
+        '<h2 class="group-title">' + esc(g.name) + ' \u00b7 top picks</h2>' +
+      '</div>' +
+      picks.map(function (x) { return exerciseCard(x, true); }).join("") +
+      (rest.length
+        ? '<div class="grid-span"><h2 class="group-title">Everything else' +
+          (rest.length > EX_RENDER_CAP ? ' \u00b7 first ' + EX_RENDER_CAP + ' \u2014 narrow with filters' : "") +
+          '</h2></div>' + rest.slice(0, EX_RENDER_CAP).map(function (x) { return exerciseCard(x); }).join("")
+        : "");
+  }
+
   function renderExercises() {
     var f = {
       q: $("ex-q").value, muscle: $("ex-muscle").value, equipment: $("ex-equipment").value,
       level: $("ex-level").value, category: $("ex-category").value
     };
+    if (f.muscle) browseGroup = null; // an explicit muscle filter replaces group browsing
+    var g = null;
+    if (browseGroup) {
+      for (var i = 0; i < MUSCLE_GROUPS.length; i++) if (MUSCLE_GROUPS[i].key === browseGroup) g = MUSCLE_GROUPS[i];
+    }
+    if (g) { renderGroupView(g, f); return; }
+    if (!f.q && !f.muscle && !f.equipment && !f.level && !f.category) { renderMuscleTiles(); return; }
     var list = L.filterExercises(window.EXERCISES, f);
     $("ex-count").textContent = list.length + " exercise" + (list.length === 1 ? "" : "s") +
       (list.length > EX_RENDER_CAP ? " (showing first " + EX_RENDER_CAP + " \u2014 narrow with filters)" : "");
@@ -106,7 +178,7 @@
         '<div class="empty-actions"><button class="btn" data-clear-filters="ex">Clear all filters</button></div></div>';
       return;
     }
-    $("ex-grid").innerHTML = list.slice(0, EX_RENDER_CAP).map(exerciseCard).join("");
+    $("ex-grid").innerHTML = list.slice(0, EX_RENDER_CAP).map(function (x) { return exerciseCard(x); }).join("");
   }
   ["ex-q", "ex-muscle", "ex-equipment", "ex-level", "ex-category"].forEach(function (id) {
     $(id).addEventListener("input", renderExercises);
@@ -231,7 +303,7 @@
     }
     var html = "";
     if (sp.length) html += '<h3 style="font-family:var(--display);text-transform:uppercase;">My supplement stack</h3><div class="grid grid-wide">' + sp.map(suppCard).join("") + "</div>";
-    if (ex.length) html += '<h3 style="font-family:var(--display);text-transform:uppercase;margin-top:22px;">Saved exercises</h3><div class="grid">' + ex.map(exerciseCard).join("") + "</div>";
+    if (ex.length) html += '<h3 style="font-family:var(--display);text-transform:uppercase;margin-top:22px;">Saved exercises</h3><div class="grid">' + ex.map(function (x) { return exerciseCard(x); }).join("") + "</div>";
     $("saved-content").innerHTML = html;
   }
 
@@ -495,6 +567,9 @@
   /* ---------- delegated clicks (save / detail / plan buttons) ---------- */
   document.addEventListener("click", function (e) {
     var t = e.target;
+    var tile = t.closest ? t.closest("[data-group]") : null;
+    if (tile) { browseGroup = tile.dataset.group; renderExercises(); }
+    if (t.closest && t.closest("[data-groups-back]")) { browseGroup = null; renderExercises(); }
     if (t.dataset && t.dataset.detail) { showTab("workouts"); showDetail(t.dataset.detail); }
     if (t.dataset && t.dataset.planEx) {
       var res = planToggle(t.dataset.planEx);

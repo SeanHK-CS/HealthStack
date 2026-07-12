@@ -95,3 +95,12 @@ Test evidence: unit 20/20 (new: seed/PRNG/split mapping + deterministic generati
 - Feedback (Sean, via PR #2 review): the daily card locked Saturday to core — wrong for anyone following their own program.
 - The weekday rotation is now a *suggestion*, not a rule: the card gets a focus picker (Full-body/Upper/Lower/Push/Pull/Core/Arms/Chest/Back/Shoulders/Glutes/Cardio). The day's suggestion is marked "· suggested"; an override is labelled "· your pick", survives reshuffles and reloads, and expires at midnight (stored as {dateSeed, split} in localStorage with in-memory fallback) so tomorrow suggests fresh.
 - Test evidence: smoke 35/35 (new: picker present, suggestion marked, override relabels card + survives reshuffle); real-browser: override persists across reload same-day, 0px mobile overflow.
+
+## v1.5 — Muscle-group browsing: the calm front door (this session)
+- Feedback (Sean's friend): "873 exercises is overwhelming." Diagnosis: choice overload — the database is the product's depth, but leading with a 60-card dump buried it.
+- M13 Progressive disclosure: the Workouts tab now opens with 9 muscle-group tiles (Chest / Back / Shoulders / Arms / Core / Quads & Hips / Hamstrings & Glutes / Calves / Cardio, each with its count). Tapping a group leads with 5 flagged "Top picks", then the full list. Back button returns to tiles. Search or any filter still drops straight into flat results, and picking a specific muscle from the dropdown exits group mode — power users lose nothing.
+- Top picks are hand-curated canonical movements (Logic.MUSCLE_GROUPS, e.g. chest = Pushups / Dumbbell Bench Press / Barbell Bench Press / Incline Dumbbell Press / Dips), because the DB has no popularity signal and pure ranking surfaced obscurities ("Spell Caster", "Cable Judo Flip"). Logic.rankSuggestions (compound-first, easier-level, common-equipment, one-per-equipment, movement-family dedup, deterministic) fills gaps when filters exclude curated picks — e.g. "chest + dumbbell only" keeps the 2 curated dumbbell picks and tops up with 3 ranked ones.
+- Equipment/level/search filters compose *within* a group view.
+- Unit tests validate every curated id exists and belongs to its group, and that the 9 groups cover all 17 primary muscles in the DB — curation can't rot silently when the dataset updates.
+
+Test evidence: unit 26/26, coach 22/22, share 9/9, smoke 36/36. Real-browser: tiles → chest → 5 canonical picks + 60-cap full list, search-within-group works, back returns to tiles, 0px mobile overflow.

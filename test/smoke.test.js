@@ -31,9 +31,21 @@ const { JSDOM } = require("jsdom");
     assert(window.Logic, "logic loaded");
   });
 
-  t("M1: exercise grid renders with count", () => {
-    assert($("ex-grid").querySelectorAll(".card").length > 0);
+  t("M1: workouts opens with muscle-group tiles, not a wall of 873 cards", () => {
+    assert($("ex-grid").querySelectorAll(".muscle-tile").length >= 8);
     assert($("ex-count").textContent.includes("873"));
+    assert($("ex-count").textContent.includes("pick a muscle group"));
+  });
+
+  t("M1: tapping a group leads with flagged top picks, then the full list", () => {
+    $("ex-grid").querySelector("[data-group='chest']").click();
+    assert($("ex-grid").textContent.includes("top picks"));
+    assert($("ex-grid").querySelectorAll(".chip.pick").length === 5, "five suggested picks");
+    assert($("ex-grid").textContent.includes("Pushups") && $("ex-grid").textContent.includes("Dumbbell Bench Press"), "canonical curated picks lead");
+    assert($("ex-grid").querySelectorAll(".card").length > 6, "full list follows the picks");
+    assert($("ex-count").textContent.includes("Chest"));
+    $("ex-grid").querySelector("[data-groups-back]").click();
+    assert($("ex-grid").querySelectorAll(".muscle-tile").length >= 8, "back returns to tiles");
   });
 
   t("M1: filtering to chest + dumbbell updates grid and count", () => {
@@ -185,6 +197,7 @@ const { JSDOM } = require("jsdom");
   /* ---- M9/M10: coach plan builder + shareable links ---- */
   t("M9: '+ Plan' collects an exercise into the Plans tab builder", () => {
     doc.getElementById("tab-workouts").click();
+    $("ex-grid").querySelector("[data-group='chest']").click();
     const btn = $("ex-grid").querySelector("[data-plan-ex]");
     btn.click();
     doc.getElementById("tab-plans").click();
@@ -319,9 +332,11 @@ const { JSDOM } = require("jsdom");
 
   t("M12: exercise cards show a thumbnail that hides itself on load failure", () => {
     doc.getElementById("tab-workouts").click();
+    input("ex-muscle", "chest");
     const img = $("ex-grid").querySelector(".card-thumb");
     assert(img && img.src.includes("raw.githubusercontent.com"));
     assert(img.getAttribute("onerror"), "has offline fallback");
+    input("ex-muscle", "");
   });
 
   t("removal check: no key field, settings control, or api.anthropic.com reference in the page", () => {

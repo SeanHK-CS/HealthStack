@@ -7,12 +7,58 @@
     const q = (f.q || "").trim().toLowerCase();
     return list.filter(function (x) {
       if (f.muscle && x.primary.indexOf(f.muscle) === -1) return false;
+      if (f.muscles && f.muscles.length) { // muscle-group browsing: match any
+        let hit = false;
+        for (let i = 0; i < f.muscles.length; i++) {
+          if (x.primary.indexOf(f.muscles[i]) !== -1) { hit = true; break; }
+        }
+        if (!hit) return false;
+      }
       if (f.equipment && x.equipment !== f.equipment) return false;
       if (f.level && x.level !== f.level) return false;
       if (f.category && x.category !== f.category) return false;
       if (q && x.name.toLowerCase().indexOf(q) === -1) return false;
       return true;
     });
+  };
+
+  // Deterministic "top picks" for the overwhelmed: compound movements first,
+  // then easier levels, then common equipment, then short canonical names
+  // ("Pushups" beats "Incline Push-Up Reverse Grip"). No randomness —
+  // suggestions should feel stable and authoritative, not like a slot machine.
+  // Greedy selection takes at most one exercise per equipment type first, so
+  // the shortlist reads like a coach's list (push-up, dumbbell press, barbell
+  // press...) instead of five variants of the same movement.
+  Logic.rankSuggestions = function (list, n) {
+    n = n || 5;
+    const equipRank = { "body only": 0, "dumbbell": 1, "barbell": 2, "cable": 3, "machine": 4 };
+    const levelRank = { beginner: 0, intermediate: 1, expert: 2 };
+    const ranked = list.slice().sort(function (a, b) {
+      return (a.mechanic === "compound" ? 0 : 1) - (b.mechanic === "compound" ? 0 : 1) ||
+        (levelRank[a.level] || 0) - (levelRank[b.level] || 0) ||
+        (equipRank[a.equipment] != null ? equipRank[a.equipment] : 9) - (equipRank[b.equipment] != null ? equipRank[b.equipment] : 9) ||
+        a.name.split(/\s+/).length - b.name.split(/\s+/).length ||
+        a.name.localeCompare(b.name);
+    });
+    const family = function (x) { return x.name.toLowerCase().replace(/[^a-z\s]/g, "").split(/\s+/).slice(0, 2).join(" "); };
+    const picks = [], usedEquip = {}, usedFamily = {};
+    for (let i = 0; i < ranked.length && picks.length < n; i++) { // one per equipment type
+      const x = ranked[i];
+      if (usedEquip[x.equipment] || usedFamily[family(x)]) continue;
+      usedEquip[x.equipment] = true;
+      usedFamily[family(x)] = true;
+      picks.push(x);
+    }
+    for (let j = 0; j < ranked.length && picks.length < n; j++) { // top up, still avoiding same-movement variants
+      const y = ranked[j];
+      if (picks.indexOf(y) !== -1 || usedFamily[family(y)]) continue;
+      usedFamily[family(y)] = true;
+      picks.push(y);
+    }
+    for (let k = 0; k < ranked.length && picks.length < n; k++) { // last resort: fill
+      if (picks.indexOf(ranked[k]) === -1) picks.push(ranked[k]);
+    }
+    return picks;
   };
 
   Logic.filterSupps = function (list, f) {
@@ -71,6 +117,30 @@
 
     return { bmr: bmr, tdee: tdee, target: target, proteinLo: proteinLo, proteinHi: proteinHi, proteinMid: proteinMid, fatG: fatG, carbG: carbG };
   };
+
+  // Muscle-group browsing config. `picks` are hand-curated canonical exercises
+  // (validated against the DB by unit tests) shown as "top picks" — the
+  // algorithmic rankSuggestions only fills in when filters exclude them.
+  Logic.MUSCLE_GROUPS = [
+    { key: "chest", name: "Chest", muscles: ["chest"],
+      picks: ["Pushups", "Dumbbell_Bench_Press", "Barbell_Bench_Press_-_Medium_Grip", "Incline_Dumbbell_Press", "Dips_-_Chest_Version"] },
+    { key: "back", name: "Back", muscles: ["lats", "middle back", "lower back", "traps", "neck"],
+      picks: ["Pullups", "Wide-Grip_Lat_Pulldown", "Bent_Over_Barbell_Row", "Seated_Cable_Rows", "One-Arm_Dumbbell_Row"] },
+    { key: "shoulders", name: "Shoulders", muscles: ["shoulders"],
+      picks: ["Seated_Dumbbell_Press", "Standing_Military_Press", "Side_Lateral_Raise", "Front_Dumbbell_Raise", "Arnold_Dumbbell_Press"] },
+    { key: "arms", name: "Arms", muscles: ["biceps", "triceps", "forearms"],
+      picks: ["Barbell_Curl", "Hammer_Curls", "Triceps_Pushdown", "Dips_-_Triceps_Version", "Close-Grip_Barbell_Bench_Press"] },
+    { key: "core", name: "Core", muscles: ["abdominals"],
+      picks: ["Plank", "Crunches", "Sit-Up", "Russian_Twist", "Ab_Crunch_Machine"] },
+    { key: "quads", name: "Quads & Hips", muscles: ["quadriceps", "abductors", "adductors"],
+      picks: ["Barbell_Squat", "Bodyweight_Squat", "Leg_Press", "Dumbbell_Lunges", "Goblet_Squat"] },
+    { key: "hams", name: "Hamstrings & Glutes", muscles: ["hamstrings", "glutes"],
+      picks: ["Romanian_Deadlift", "Lying_Leg_Curls", "Barbell_Hip_Thrust", "Stiff-Legged_Barbell_Deadlift", "Butt_Lift_Bridge"] },
+    { key: "calves", name: "Calves", muscles: ["calves"],
+      picks: ["Standing_Calf_Raises", "Seated_Calf_Raise", "Calf_Press_On_The_Leg_Press_Machine", "Standing_Dumbbell_Calf_Raise", "Donkey_Calf_Raises"] },
+    { key: "cardio", name: "Cardio & Conditioning", category: "cardio",
+      picks: ["Rowing_Stationary", "Running_Treadmill", "Bicycling_Stationary", "Rope_Jumping", "Stairmaster"] }
+  ];
 
   // Daily session: a date-seeded pick so "today's workout" is stable all day
   // and fresh tomorrow. mulberry32 is a tiny deterministic PRNG.
