@@ -240,6 +240,10 @@ const { JSDOM } = require("jsdom");
     assert(!r.error, r.error);
     assert.strictEqual(r.plan.coach, "Coach Sam");
     assert(r.plan.items[0].note.includes("eccentric"));
+    // clear the local draft so the upcoming import genuinely restores state
+    // (recipients open links in fresh browsers with no draft)
+    $("plan-clear").click();
+    assert($("plan-builder").textContent.includes("No exercises in this plan yet"));
   });
 
   window.location.hash = "#" + sharedLink.split("#")[1];
