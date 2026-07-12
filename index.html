@@ -68,7 +68,7 @@
       </select>
       <span class="count" id="supp-count"></span>
     </div>
-    <div class="grid" id="supp-grid" style="grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));"></div>
+    <div class="grid grid-wide" id="supp-grid"></div>
     <p class="note">Tiers are a curated summary of research consensus (Examine.com analyses, ISSN position stands, meta-analyses). Each card links to its full Examine page. This is general education, not medical advice; check interactions with any medication you take.</p>
   </section>
 
@@ -129,10 +129,12 @@
           </select>
           <span class="count" id="food-count"></span>
         </div>
-        <table class="food-table" aria-label="Food macros per 100 grams">
-          <thead><tr><th>Food</th><th>kcal</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th></tr></thead>
-          <tbody id="food-body"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="food-table" aria-label="Food macros per 100 grams">
+            <thead><tr><th>Food</th><th>kcal</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th></tr></thead>
+            <tbody id="food-body"></tbody>
+          </table>
+        </div>
         <p class="note">Approximate USDA FoodData Central averages per 100 g. Cooked values where noted.</p>
       </div>
     </div>

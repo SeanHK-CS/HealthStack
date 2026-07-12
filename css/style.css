@@ -117,7 +117,9 @@ input, select { font: inherit; }
 }
 .count { color: var(--muted); font-size: 13px; margin-left: auto; }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+/* min(...) keeps columns from forcing horizontal scroll on narrow phones */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 12px; }
+.grid-wide { grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); }
 
 .card {
   background: var(--card);
@@ -203,6 +205,9 @@ input, select { font: inherit; }
 
 /* Nutrition */
 .nutrition-layout { display: grid; grid-template-columns: 340px 1fr; gap: 16px; align-items: start; }
+/* min-width:0 lets grid tracks shrink below the intrinsic width of long
+   <select> options — without it the calculator overflows narrow screens */
+.nutrition-layout > *, .calc .row2 > *, .plan-grid > * { min-width: 0; }
 .calc { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
 .calc h3, .foods-box h3 { font-family: var(--display); text-transform: uppercase; font-size: 19px; margin: 0 0 10px; letter-spacing: 0.03em; }
 .calc label { display: block; font-size: 12.5px; color: var(--muted); margin: 10px 0 3px; }
@@ -218,6 +223,7 @@ input, select { font: inherit; }
 .results td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
 
 .foods-box { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .food-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .food-table th { text-align: left; font-family: var(--display); text-transform: uppercase; letter-spacing: 0.05em; font-size: 13px; color: var(--muted); border-bottom: 2px solid var(--ink); padding: 6px 8px; }
 .food-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
@@ -240,6 +246,8 @@ footer.disclaimer {
   .brand { font-size: 27px; }
   .wrap { padding: 16px 14px 50px; }
   .masthead { padding: 14px 14px 0; }
+  .tab { font-size: 16px; padding: 10px 12px 12px; }
+  .detail { padding: 16px; }
 }
 
 .card { position: relative; }
@@ -439,4 +447,15 @@ footer.disclaimer {
   0% { opacity: 0; transform: translate(-50%, 10px); }
   10%, 85% { opacity: 1; transform: translate(-50%, 0); }
   100% { opacity: 0; transform: translate(-50%, 0); }
+}
+
+/* Touch devices: comfortable tap targets, and 16px form text so iOS Safari
+   doesn't auto-zoom when an input gets focus. Kept last so it wins the
+   cascade over component base rules above. */
+@media (pointer: coarse) {
+  .btn { padding: 9px 14px; font-size: 14px; }
+  .btn.icon { padding: 8px 13px; }
+  .coach-close { padding: 8px 12px; }
+  input, select, textarea { font-size: 16px; }
+  .food-table { font-size: 14px; }
 }

@@ -218,7 +218,7 @@
       return;
     }
     var html = "";
-    if (sp.length) html += '<h3 style="font-family:var(--display);text-transform:uppercase;">My supplement stack</h3><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(330px,1fr));">' + sp.map(suppCard).join("") + "</div>";
+    if (sp.length) html += '<h3 style="font-family:var(--display);text-transform:uppercase;">My supplement stack</h3><div class="grid grid-wide">' + sp.map(suppCard).join("") + "</div>";
     if (ex.length) html += '<h3 style="font-family:var(--display);text-transform:uppercase;margin-top:22px;">Saved exercises</h3><div class="grid">' + ex.map(exerciseCard).join("") + "</div>";
     $("saved-content").innerHTML = html;
   }

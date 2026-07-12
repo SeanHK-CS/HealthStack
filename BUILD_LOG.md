@@ -67,3 +67,11 @@ Decisions & deviations:
 - 15-exercise cap keeps worst-case links ~6 KB, comfortably inside practical URL limits for chat apps and browsers.
 
 Test evidence: unit 16/16, coach 22/22, share 9/9 (new: round-trip incl. unicode, hostile input, caps, hash parsing), smoke 27/27 (new: builder flow, link generation, opening a #p= link, import, tampered-link recovery). Real-browser check (Chromium): motion layer engages, plan built and shared link opened in a fresh page shows the read-only coach view.
+
+## v1.3.1 — Mobile pass (this session)
+- E9 Audited every tab (plus exercise detail, plan builder, shared-plan view, coach chat) in emulated mobile Chromium at 390px and 320px: zero horizontal overflow, no page errors.
+- FIXED: Nutrition tab overflowed 63px on phones — long <select> option labels set the intrinsic min-width of grid tracks; added min-width:0 to nutrition/calculator/plan grid children.
+- FIXED: Supplements grid overflowed 24px at 320px — inline minmax(330px,1fr) column floor exceeded the viewport; replaced inline styles with a .grid-wide class using minmax(min(330px,100%),1fr) (base .grid gets the same min() guard).
+- Food table now sits in an overflow-x:auto wrapper so worst-case width scrolls inside its card instead of widening the page.
+- Touch ergonomics (@media pointer:coarse, kept last in the cascade): bigger tap targets for .btn/.btn.icon/coach close, 16px form text so iOS Safari doesn't auto-zoom on input focus.
+- Test evidence: unit 16/16, coach 22/22, share 9/9, smoke 27/27 unchanged; mobile audit script reports 0px overflow on all views at both widths.
