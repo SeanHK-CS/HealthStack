@@ -73,8 +73,14 @@
   fillSelect($("ex-equipment"), EQUIP);
   fillSelect($("ex-category"), CATS);
 
+  /* Muscle-group browsing: the antidote to "873 exercises" overwhelm.
+     The default view is ~9 tiles; a tapped group leads with 5 top picks
+     (curated lists live in logic.js next to the fallback ranking). */
+  var MUSCLE_GROUPS = L.MUSCLE_GROUPS;
+  var browseGroup = null; // key of the group being browsed, or null
+
   var EX_RENDER_CAP = 60;
-  function exerciseCard(x) {
+  function exerciseCard(x, topPick) {
     var saved = store.has("ex", x.id);
     return '<div class="card">' +
       '<div class="card-row">' +
@@ -84,6 +90,7 @@
       '<div class="meta">' + esc(x.level) + ' &middot; ' + esc(x.equipment) + ' &middot; ' + esc(x.category) + '</div>' +
       '</div></div>' +
       '<div class="chips">' +
+        (topPick ? '<span class="chip pick">Top pick</span>' : "") +
         x.primary.map(function (p) { return '<span class="chip primary">' + esc(p) + '</span>'; }).join("") +
         x.secondary.slice(0, 3).map(function (p) { return '<span class="chip">' + esc(p) + '</span>'; }).join("") +
       '</div>' +
@@ -93,11 +100,91 @@
         '<button class="btn' + (planHas(x.id) ? " saved" : "") + '" data-plan-ex="' + esc(x.id) + '">' + (planHas(x.id) ? "In plan \u2713" : "+ Plan") + '</button>' +
       '</div></div>';
   }
+  var CORE_CATS = ["strength", "powerlifting", "olympic weightlifting"];
+  // curated canonical picks first; the ranking algorithm fills any gaps
+  // (e.g. when an equipment filter excludes some of the curated ones)
+  function groupPicks(g, list, n) {
+    var listIds = {};
+    list.forEach(function (x) { listIds[x.id] = 1; });
+    var picks = (g.picks || []).filter(function (id) { return listIds[id]; }).map(exById);
+    if (picks.length < n) {
+      var chosen = {};
+      picks.forEach(function (x) { chosen[x.id] = 1; });
+      var pool = (g.category ? list : list.filter(function (x) { return CORE_CATS.indexOf(x.category) !== -1; }))
+        .filter(function (x) { return !chosen[x.id]; });
+      if (pool.length < 3) pool = list.filter(function (x) { return !chosen[x.id]; });
+      picks = picks.concat(L.rankSuggestions(pool, n - picks.length));
+    }
+    return picks.slice(0, n);
+  }
+
+  // Browse home: one horizontally scrollable row per muscle group, curated
+  // picks first \u2014 every group visible at a glance, no wall of 873 cards.
+  function renderBrowseRows() {
+    $("ex-grid").classList.add("rows-mode");
+    $("ex-count").textContent = "Browse by muscle group, or search above";
+    $("ex-grid").innerHTML = MUSCLE_GROUPS.map(function (g) {
+      var list = L.filterExercises(window.EXERCISES, { muscles: g.muscles, category: g.category });
+      var picks = groupPicks(g, list, 8);
+      return '<section class="ex-row">' +
+        '<div class="ex-row-head">' +
+          '<h2>' + esc(g.name) + '</h2>' +
+          '<div class="ex-row-nav">' +
+            '<button class="btn icon" data-row-nav="-1" aria-label="Scroll ' + esc(g.name) + ' back">&lsaquo;</button>' +
+            '<button class="btn icon" data-row-nav="1" aria-label="Scroll ' + esc(g.name) + ' forward">&rsaquo;</button>' +
+            '<button class="btn" data-group="' + g.key + '">See all &rarr;</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="ex-row-scroll">' + picks.map(function (x) { return exerciseCard(x); }).join("") + '</div>' +
+      '</section>';
+    }).join("");
+  }
+  function renderGroupView(g, f) {
+    var list = L.filterExercises(window.EXERCISES, {
+      q: f.q, equipment: f.equipment, level: f.level,
+      muscles: g.muscles, category: g.category || f.category
+    });
+    // counts only as filter feedback \u2014 a bare group view stays number-free
+    var narrowed = f.q || f.equipment || f.level || f.category;
+    $("ex-count").textContent = narrowed ? list.length + " match" + (list.length === 1 ? "" : "es") + " \u00b7 " + g.name : "";
+    if (!list.length) {
+      $("ex-grid").innerHTML = '<div class="empty">Nothing in ' + esc(g.name) + ' matches those filters.' +
+        '<div class="empty-actions">' +
+          '<button class="btn" data-clear-filters="ex">Clear all filters</button>' +
+          '<button class="btn" data-groups-back>All muscle groups</button>' +
+        '</div></div>';
+      return;
+    }
+    var picks = groupPicks(g, list, 5);
+    var used = {};
+    picks.forEach(function (x) { used[x.id] = 1; });
+    var rest = list.filter(function (x) { return !used[x.id]; });
+    $("ex-grid").innerHTML =
+      '<div class="grid-span">' +
+        '<button class="btn" data-groups-back>&larr; All muscle groups</button>' +
+        '<h2 class="group-title">' + esc(g.name) + ' \u00b7 top picks</h2>' +
+      '</div>' +
+      picks.map(function (x) { return exerciseCard(x, true); }).join("") +
+      (rest.length
+        ? '<div class="grid-span"><h2 class="group-title">Everything else' +
+          (rest.length > EX_RENDER_CAP ? ' \u00b7 first ' + EX_RENDER_CAP + ' \u2014 narrow with filters' : "") +
+          '</h2></div>' + rest.slice(0, EX_RENDER_CAP).map(function (x) { return exerciseCard(x); }).join("")
+        : "");
+  }
+
   function renderExercises() {
     var f = {
       q: $("ex-q").value, muscle: $("ex-muscle").value, equipment: $("ex-equipment").value,
       level: $("ex-level").value, category: $("ex-category").value
     };
+    if (f.muscle) browseGroup = null; // an explicit muscle filter replaces group browsing
+    $("ex-grid").classList.remove("rows-mode");
+    var g = null;
+    if (browseGroup) {
+      for (var i = 0; i < MUSCLE_GROUPS.length; i++) if (MUSCLE_GROUPS[i].key === browseGroup) g = MUSCLE_GROUPS[i];
+    }
+    if (g) { renderGroupView(g, f); return; }
+    if (!f.q && !f.muscle && !f.equipment && !f.level && !f.category) { renderBrowseRows(); return; }
     var list = L.filterExercises(window.EXERCISES, f);
     $("ex-count").textContent = list.length + " exercise" + (list.length === 1 ? "" : "s") +
       (list.length > EX_RENDER_CAP ? " (showing first " + EX_RENDER_CAP + " \u2014 narrow with filters)" : "");
@@ -106,7 +193,7 @@
         '<div class="empty-actions"><button class="btn" data-clear-filters="ex">Clear all filters</button></div></div>';
       return;
     }
-    $("ex-grid").innerHTML = list.slice(0, EX_RENDER_CAP).map(exerciseCard).join("");
+    $("ex-grid").innerHTML = list.slice(0, EX_RENDER_CAP).map(function (x) { return exerciseCard(x); }).join("");
   }
   ["ex-q", "ex-muscle", "ex-equipment", "ex-level", "ex-category"].forEach(function (id) {
     $(id).addEventListener("input", renderExercises);
@@ -231,7 +318,7 @@
     }
     var html = "";
     if (sp.length) html += '<h3 style="font-family:var(--display);text-transform:uppercase;">My supplement stack</h3><div class="grid grid-wide">' + sp.map(suppCard).join("") + "</div>";
-    if (ex.length) html += '<h3 style="font-family:var(--display);text-transform:uppercase;margin-top:22px;">Saved exercises</h3><div class="grid">' + ex.map(exerciseCard).join("") + "</div>";
+    if (ex.length) html += '<h3 style="font-family:var(--display);text-transform:uppercase;margin-top:22px;">Saved exercises</h3><div class="grid">' + ex.map(function (x) { return exerciseCard(x); }).join("") + "</div>";
     $("saved-content").innerHTML = html;
   }
 
@@ -495,6 +582,16 @@
   /* ---------- delegated clicks (save / detail / plan buttons) ---------- */
   document.addEventListener("click", function (e) {
     var t = e.target;
+    var tile = t.closest ? t.closest("[data-group]") : null;
+    if (tile) { browseGroup = tile.dataset.group; renderExercises(); }
+    if (t.closest && t.closest("[data-groups-back]")) { browseGroup = null; renderExercises(); }
+    var nav = t.closest ? t.closest("[data-row-nav]") : null;
+    if (nav) {
+      var scroller = nav.closest(".ex-row").querySelector(".ex-row-scroll");
+      var dx = Number(nav.dataset.rowNav) * Math.max(200, scroller.clientWidth - 100);
+      if (scroller.scrollBy) scroller.scrollBy({ left: dx, behavior: "smooth" });
+      else scroller.scrollLeft += dx;
+    }
     if (t.dataset && t.dataset.detail) { showTab("workouts"); showDetail(t.dataset.detail); }
     if (t.dataset && t.dataset.planEx) {
       var res = planToggle(t.dataset.planEx);

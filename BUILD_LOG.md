@@ -95,3 +95,25 @@ Test evidence: unit 20/20 (new: seed/PRNG/split mapping + deterministic generati
 - Feedback (Sean, via PR #2 review): the daily card locked Saturday to core — wrong for anyone following their own program.
 - The weekday rotation is now a *suggestion*, not a rule: the card gets a focus picker (Full-body/Upper/Lower/Push/Pull/Core/Arms/Chest/Back/Shoulders/Glutes/Cardio). The day's suggestion is marked "· suggested"; an override is labelled "· your pick", survives reshuffles and reloads, and expires at midnight (stored as {dateSeed, split} in localStorage with in-memory fallback) so tomorrow suggests fresh.
 - Test evidence: smoke 35/35 (new: picker present, suggestion marked, override relabels card + survives reshuffle); real-browser: override persists across reload same-day, 0px mobile overflow.
+
+## v1.5 — Muscle-group browsing: the calm front door (this session)
+- Feedback (Sean's friend): "873 exercises is overwhelming." Diagnosis: choice overload — the database is the product's depth, but leading with a 60-card dump buried it.
+- M13 Progressive disclosure: the Workouts tab now opens with 9 muscle-group tiles (Chest / Back / Shoulders / Arms / Core / Quads & Hips / Hamstrings & Glutes / Calves / Cardio, each with its count). Tapping a group leads with 5 flagged "Top picks", then the full list. Back button returns to tiles. Search or any filter still drops straight into flat results, and picking a specific muscle from the dropdown exits group mode — power users lose nothing.
+- Top picks are hand-curated canonical movements (Logic.MUSCLE_GROUPS, e.g. chest = Pushups / Dumbbell Bench Press / Barbell Bench Press / Incline Dumbbell Press / Dips), because the DB has no popularity signal and pure ranking surfaced obscurities ("Spell Caster", "Cable Judo Flip"). Logic.rankSuggestions (compound-first, easier-level, common-equipment, one-per-equipment, movement-family dedup, deterministic) fills gaps when filters exclude curated picks — e.g. "chest + dumbbell only" keeps the 2 curated dumbbell picks and tops up with 3 ranked ones.
+- Equipment/level/search filters compose *within* a group view.
+- Unit tests validate every curated id exists and belongs to its group, and that the 9 groups cover all 17 primary muscles in the DB — curation can't rot silently when the dataset updates.
+
+Test evidence: unit 26/26, coach 22/22, share 9/9, smoke 36/36. Real-browser: tiles → chest → 5 canonical picks + 60-cap full list, search-within-group works, back returns to tiles, 0px mobile overflow.
+
+## v1.5.1 — Browse rows (carousel) instead of tiles (this session)
+- Feedback (Sean): make the muscle-group browsing feel like a carousel.
+- The Workouts front door is now one horizontally scrollable, scroll-snap row per muscle group (Netflix pattern) — 8 cards each, curated picks first — so real exercises are visible immediately instead of abstract category tiles. "See all →" opens the existing group view (5 flagged picks + full list); ‹ › arrows scroll a row on desktop and hide on touch widths where fingers do it.
+- Deliberately NOT an auto-rotating carousel (known anti-pattern: content gets missed, controls fight the user) — rows only move when the user moves them.
+- Shared groupPicks() feeds both the rows (8) and the group view (5).
+- Test evidence: unit 26/26, coach 22/22, share 9/9, smoke 36/36 (row structure, arrows, See-all round-trip). Real-browser: 9 rows render, arrow scrolls 2→854px, See-all/back round-trip works, arrows hidden at 390px, 0px overflow at 390/320.
+
+## v1.5.2 — Numbers only as feedback, never as advertising (this session)
+- Feedback (Sean): the count next to each row and the "800+ exercises" framing still read as overwhelming.
+- Rule adopted: counts appear only when they answer a question the user asked. Removed: per-row "84 exercises", the "873 exercises · browse..." label, "Search 873 exercises" placeholder, and the tagline's number ("A full exercise library · ..."). Kept: result counts after searching/filtering ("12 matches · Chest", "showing first 60"), where the number is feedback, not pressure.
+- Bare group views show no count; filtering within a group brings the count back.
+- Test evidence: smoke 36/36 (asserts browse surfaces are number-free and that counts return as filter feedback); unit/coach/share unchanged (26/22/9).
