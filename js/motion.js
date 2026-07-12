@@ -48,7 +48,11 @@
       var k = kids[i];
       if (k.classList.contains("mp-card")) continue;
       k.classList.add("mp-card");
-      k.style.setProperty("--mp-i", String(i % 14));
+      // stagger within the card's own parent (a carousel row, a grid), not
+      // across the whole page — otherwise rows further down inherit big
+      // delays and pop in late/out of order when scrolled into view
+      var local = k.parentNode ? Array.prototype.indexOf.call(k.parentNode.children, k) : i;
+      k.style.setProperty("--mp-i", String((local >= 0 ? local : i) % 14));
       if (io) io.observe(k); else k.classList.add("mp-in");
     }
   }
