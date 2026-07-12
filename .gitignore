@@ -2,3 +2,6 @@
 node_modules/
 package.json
 package-lock.json
+
+# Product plans stay out of the public repo (kept in the owner's private Drive).
+ROADMAP.md

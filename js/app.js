@@ -536,6 +536,9 @@
       $("shared-plan").hidden = true;
       $("shared-plan").innerHTML = "";
       $("plan-builder").hidden = false;
+      // re-render: an import may have just changed the draft (a recipient's
+      // fresh browser renders the builder before the import happens)
+      if (!$("panel-plans").hidden) renderPlans();
     }
   }
   window.addEventListener("hashchange", checkSharedHash);
